@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduTech Pro - Assignment Submission</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Lexend:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary": "#006e2c",
+                      "primary-fixed-dim": "#adc6ff",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#181c20",
+                      "surface-container": "#ebeef4",
+                      "surface-bright": "#f7f9ff",
+                      "inverse-primary": "#adc6ff",
+                      "secondary-container": "#86f898",
+                      "on-secondary": "#ffffff",
+                      "error-container": "#ffdad6",
+                      "on-error-container": "#93000a",
+                      "surface-tint": "#005ac1",
+                      "on-secondary-container": "#00722f",
+                      "surface": "#f7f9ff",
+                      "secondary-fixed-dim": "#6ddd81",
+                      "on-tertiary-fixed": "#261a00",
+                      "error": "#ba1a1a",
+                      "tertiary-fixed-dim": "#fbbc06",
+                      "surface-variant": "#dfe3e8",
+                      "surface-container-highest": "#dfe3e8",
+                      "on-tertiary-fixed-variant": "#5c4300",
+                      "secondary-fixed": "#89fa9b",
+                      "outline-variant": "#c2c6d5",
+                      "surface-container-high": "#e5e8ee",
+                      "on-primary-container": "#fefcff",
+                      "surface-dim": "#d7dae0",
+                      "on-error": "#ffffff",
+                      "surface-container-low": "#f1f4fa",
+                      "primary-container": "#2771df",
+                      "background": "#f7f9ff",
+                      "tertiary-fixed": "#ffdea0",
+                      "tertiary": "#765700",
+                      "on-primary-fixed": "#001a41",
+                      "primary-fixed": "#d8e2ff",
+                      "surface-container-lowest": "#ffffff",
+                      "outline": "#727785",
+                      "tertiary-container": "#956e00",
+                      "on-secondary-fixed-variant": "#005320",
+                      "on-primary": "#ffffff",
+                      "primary": "#0058bd",
+                      "on-surface-variant": "#424753",
+                      "inverse-surface": "#2d3135",
+                      "on-surface": "#181c20",
+                      "on-tertiary-container": "#fffbff",
+                      "inverse-on-surface": "#eef1f7",
+                      "on-secondary-fixed": "#002108",
+                      "on-primary-fixed-variant": "#004494"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px",
+                      "card": "12px"
+              },
+              "spacing": {
+                      "margin-md": "32px",
+                      "margin-sm": "16px",
+                      "unit": "8px",
+                      "gutter": "16px",
+                      "container-padding": "24px",
+                      "margin-lg": "48px",
+                      "card-padding": "24px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "lexend"
+                      ],
+                      "body-lg": [
+                              "inter"
+                      ],
+                      "label-lg": [
+                              "inter"
+                      ],
+                      "display": [
+                              "lexend"
+                      ],
+                      "body-md": [
+                              "inter"
+                      ],
+                      "label-sm": [
+                              "inter"
+                      ],
+                      "headline-lg": [
+                              "lexend"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.1px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.5px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              },
+              boxShadow: {
+                  'level-1': '0px 1px 3px rgba(0, 0, 0, 0.05), 0px 4px 6px rgba(0, 0, 0, 0.02)',
+              }
+            },
+          }
+        }
+      </script>
+<style>
+          .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+          }
+      </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-slate-950 font-lexend text-base font-medium docked full-width top-0 z-50 border-b border-gray-100 dark:border-gray-800 shadow-sm flex justify-between items-center w-full px-6 h-16 sticky">
+<div class="flex items-center gap-4">
+<button class="text-blue-600 dark:text-blue-400 hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors rounded-full p-2 active:scale-95 duration-150 flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-bold text-blue-600 dark:text-blue-400 tracking-tight">EduTech Pro</h1>
+</div>
+<!-- Desktop Nav -->
+<nav class="hidden md:flex gap-8 items-center h-full">
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors h-full flex items-center px-4" href="#">Home</a>
+<a class="text-blue-600 dark:text-blue-400 font-semibold border-b-2 border-blue-600 h-full flex items-center px-4" href="#">Assignments</a>
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors h-full flex items-center px-4" href="#">Grades</a>
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors h-full flex items-center px-4" href="#">Profile</a>
+</nav>
+<div class="flex items-center">
+<div class="h-8 w-8 rounded-full bg-primary-fixed-dim text-primary flex items-center justify-center font-bold text-sm overflow-hidden">
+<img alt="Student Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a young student looking confident, well-lit studio shot, modern educational context" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPDUuMT5F9YJ4H8DxLvvvfb2q5ZXFCFNcJWRvDjpqCBmjzRbBp7ilqcH21TQRyDsSuCjWvs_HlNRJLpqeKVaAUeXAgzVHGgNqPRuYdID6ol69MY-lOJt-CthXrkR2qv4kmHyrLPz1NOpLMNv6h2-EXvFouI_Vtyjn43r1nUYtQfLpwA_gN3gW_In8k_owkUrqziSyENrZCpFI5eo1k_0jcslLo3KsKsMoiPEHOLevXSjvIaRcVi4gxZ1R0QcAqfLKPD2VQWtEqxSyF"/>
+</div>
+</div>
+</header>
+<!-- NavigationDrawer (Hidden on mobile, visible on desktop) -->
+<div class="flex">
+<aside class="bg-[#F1F3F4] dark:bg-slate-900 font-lexend text-sm h-[calc(100vh-64px)] w-72 rounded-r-2xl hidden lg:flex flex-col gap-2 p-4 sticky top-16 border-r border-surface-variant">
+<div class="flex items-center gap-3 mb-6 p-2">
+<div class="h-10 w-10 rounded-full overflow-hidden bg-primary-container">
+<img alt="Student Avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a young student looking confident, well-lit studio shot, modern educational context" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjjlr_8AquqWGWWbNNnemJowDV6btu-gdcMoRY030zUIkXEvY75WKgSDltb6_30JjYj6DyeApXZPRpkk_Sy0rPWRQ3paVn6PQQbmeLG1LfIIa4ms30BQsZyplheCSiBDkM3D3Z2EB9dtcaZHirnDS7R2zGlPnT8OceWeVhrFD26WDwtBx3pJZn2Y8CMdHw0x-MZnT2dluc5CR7zPmYK-WwjD0Ftgwe4XEER0TZ7s4kr9HW3jSt9fIMkVSI50O3n42pvlfG8LFGwvJW"/>
+</div>
+<div>
+<div class="text-lg font-black text-blue-600">Alex Johnson</div>
+<div class="text-on-surface-variant text-xs">Student Account</div>
+</div>
+</div>
+<a class="flex items-center gap-3 p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-800 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-800 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">school</span>
+                My Courses
+            </a>
+<a class="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold shadow-sm hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">task</span>
+                Assignments
+            </a>
+<a class="flex items-center gap-3 p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-800 hover:pl-2 transition-all duration-200 ease-in-out mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-5xl mx-auto p-container-padding grid grid-cols-1 md:grid-cols-12 gap-gutter lg:ml-8">
+<!-- Header Section -->
+<div class="col-span-1 md:col-span-12 mb-4">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-primary-fixed text-on-primary-fixed text-xs font-label-sm px-2 py-1 rounded-full uppercase tracking-wider">Visual Arts 101</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Color Theory Project</h2>
+</div>
+<div class="bg-error-container text-on-error-container px-4 py-3 rounded-lg flex items-center gap-2 shadow-level-1 w-fit">
+<span class="material-symbols-outlined text-error">timer</span>
+<div class="flex flex-col">
+<span class="font-label-sm text-xs opacity-80 uppercase tracking-wide">Due Date</span>
+<span class="font-label-lg font-bold">Tomorrow, 11:59 PM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Left Column: Details & Upload -->
+<div class="col-span-1 md:col-span-8 flex flex-col gap-gutter">
+<!-- Details Card -->
+<div class="bg-surface-container-lowest rounded-card shadow-level-1 p-card-padding">
+<h3 class="font-headline-md text-headline-md mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">description</span>
+                        Instructions
+                    </h3>
+<div class="prose prose-slate prose-sm text-on-surface-variant font-body-md space-y-4">
+<p>For this project, you will create a comprehensive color wheel and demonstrate an understanding of color harmony through a practical composition.</p>
+<ul class="list-disc pl-5 space-y-2">
+<li>Create a 12-part color wheel using primary, secondary, and tertiary colors.</li>
+<li>Develop a separate composition using a complementary color scheme.</li>
+<li>Write a brief (300-word) reflection on your process and color choices.</li>
+</ul>
+<p class="font-medium text-on-surface">Requirements:</p>
+<ul class="list-disc pl-5 space-y-2">
+<li>Digital files must be submitted as high-resolution PDFs or JPGs.</li>
+<li>Written reflection should be in DOCX or PDF format.</li>
+</ul>
+</div>
+<div class="mt-6 border-t border-outline-variant pt-4">
+<h4 class="font-label-lg text-label-lg mb-3">Reference Materials</h4>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-3 p-3 border border-outline-variant rounded-lg hover:bg-surface-container-low transition-colors" href="#">
+<div class="bg-error/10 text-error p-2 rounded flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">picture_as_pdf</span>
+</div>
+<div class="flex-1">
+<div class="font-label-lg text-sm text-on-surface">Color_Theory_Rubric.pdf</div>
+<div class="font-label-sm text-xs text-on-surface-variant">1.2 MB</div>
+</div>
+<span class="material-symbols-outlined text-outline">download</span>
+</a>
+</div>
+</div>
+</div>
+<!-- Upload Section -->
+<div class="bg-surface-container-lowest rounded-card shadow-level-1 p-card-padding">
+<h3 class="font-headline-md text-headline-md mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">cloud_upload</span>
+                        Your Submission
+                    </h3>
+<!-- Drag & Drop Zone -->
+<div class="border-2 border-dashed border-primary-fixed-dim bg-surface-bright rounded-xl p-8 flex flex-col items-center justify-center text-center transition-colors hover:bg-primary-fixed/20 hover:border-primary cursor-pointer">
+<div class="bg-primary-fixed text-primary p-4 rounded-full mb-4">
+<span class="material-symbols-outlined text-3xl">upload_file</span>
+</div>
+<h4 class="font-label-lg text-lg text-on-surface mb-1">Drag &amp; drop files here</h4>
+<p class="font-body-md text-sm text-on-surface-variant mb-6">or click to browse from your computer</p>
+<button class="bg-white border border-outline-variant text-on-surface font-label-lg py-2 px-4 rounded-lg hover:bg-surface-container-low transition-colors shadow-sm">
+                            Choose Files
+                        </button>
+<p class="font-label-sm text-xs text-outline mt-4">Supported formats: PDF, JPG, PNG, DOCX (Max 20MB)</p>
+</div>
+<!-- Uploaded Files List (Empty State visual) -->
+<div class="mt-6">
+<h4 class="font-label-lg text-label-lg mb-3">Attached Files (0)</h4>
+<div class="text-center py-6 bg-surface-container-low rounded-lg border border-dashed border-outline-variant text-on-surface-variant font-body-md text-sm">
+                            No files attached yet.
+                        </div>
+</div>
+</div>
+</div>
+<!-- Right Column: Status & Actions -->
+<div class="col-span-1 md:col-span-4 flex flex-col gap-gutter">
+<!-- Status Card -->
+<div class="bg-surface-container-lowest rounded-card shadow-level-1 p-card-padding">
+<h3 class="font-label-lg text-label-lg text-on-surface-variant mb-4 uppercase tracking-wider">Submission Status</h3>
+<div class="flex items-center gap-3 mb-6">
+<div class="bg-surface-variant text-on-surface-variant p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<div>
+<div class="font-headline-md text-lg text-on-surface">Not Submitted</div>
+<div class="font-body-md text-sm text-on-surface-variant">Attempt 1 of 3</div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between py-2 border-b border-outline-variant">
+<span class="font-body-md text-sm text-on-surface-variant">Grading Status</span>
+<span class="font-label-lg text-sm text-on-surface">Not Graded</span>
+</div>
+<div class="flex justify-between py-2 border-b border-outline-variant">
+<span class="font-body-md text-sm text-on-surface-variant">Points Possible</span>
+<span class="font-label-lg text-sm text-on-surface">100</span>
+</div>
+</div>
+</div>
+<!-- Action Card -->
+<div class="bg-surface-container-lowest rounded-card shadow-level-1 p-card-padding">
+<p class="font-body-md text-sm text-on-surface-variant mb-4">Make sure you have attached all required files before submitting.</p>
+<button class="w-full bg-primary text-on-primary font-label-lg py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+<span class="material-symbols-outlined text-sm">send</span>
+                        Submit Assignment
+                    </button>
+<button class="w-full mt-3 bg-transparent text-primary font-label-lg py-3 px-4 rounded-lg hover:bg-primary-fixed/30 transition-colors border border-transparent">
+                        Save as Draft
+                    </button>
+</div>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-white/90 dark:bg-slate-950/90 backdrop-blur-md font-lexend text-[11px] font-medium fixed bottom-0 w-full rounded-t-2xl shadow-[0_-4px_12px_rgba(0,0,0,0.05)] fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 px-4 pb-safe tonal-split">
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+            Home
+        </a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-xl px-3 py-1 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">assignment</span>
+            Assignments
+        </a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1">grade</span>
+            Grades
+        </a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-all duration-300 ease-out" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+            Profile
+        </a>
+</nav>
+</body></html>

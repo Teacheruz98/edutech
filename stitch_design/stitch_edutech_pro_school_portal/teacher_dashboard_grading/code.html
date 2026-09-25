@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduTech Pro - Student List</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#adc6ff",
+                      "surface-bright": "#f7f9ff",
+                      "primary-fixed-dim": "#adc6ff",
+                      "surface": "#f7f9ff",
+                      "on-secondary-fixed": "#002108",
+                      "surface-variant": "#dfe3e8",
+                      "outline": "#727785",
+                      "on-tertiary-fixed-variant": "#5c4300",
+                      "surface-container-low": "#f1f4fa",
+                      "on-surface": "#181c20",
+                      "on-error": "#ffffff",
+                      "surface-container-highest": "#dfe3e8",
+                      "on-tertiary-fixed": "#261a00",
+                      "secondary-fixed": "#89fa9b",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "tertiary-container": "#956e00",
+                      "surface-container-high": "#e5e8ee",
+                      "on-secondary-container": "#00722f",
+                      "on-primary-fixed-variant": "#004494",
+                      "on-secondary-fixed-variant": "#005320",
+                      "outline-variant": "#c2c6d5",
+                      "secondary-fixed-dim": "#6ddd81",
+                      "surface-dim": "#d7dae0",
+                      "tertiary-fixed-dim": "#fbbc06",
+                      "inverse-surface": "#2d3135",
+                      "secondary": "#006e2c",
+                      "on-surface-variant": "#424753",
+                      "background": "#f7f9ff",
+                      "primary-fixed": "#d8e2ff",
+                      "primary": "#0058bd",
+                      "surface-tint": "#005ac1",
+                      "surface-container": "#ebeef4",
+                      "primary-container": "#2771df",
+                      "secondary-container": "#86f898",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#001a41",
+                      "on-primary": "#ffffff",
+                      "on-primary-container": "#fefcff",
+                      "error-container": "#ffdad6",
+                      "on-background": "#181c20",
+                      "tertiary": "#765700",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed": "#ffdea0",
+                      "inverse-on-surface": "#eef1f7",
+                      "on-tertiary-container": "#fffbff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-lg": "48px",
+                      "margin-sm": "16px",
+                      "gutter": "16px",
+                      "container-padding": "24px",
+                      "margin-md": "32px",
+                      "unit": "8px"
+              },
+              "fontFamily": {
+                      "headline-md": [
+                              "Lexend"
+                      ],
+                      "headline-lg": [
+                              "Lexend"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "display": [
+                              "Lexend"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.1px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.5px",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24 md:pb-0 md:flex">
+<!-- Navigation Drawer (Desktop Only) -->
+<nav class="hidden md:flex flex-col h-screen py-6 pl-4 w-72 border-r tonal-shift bg-slate-50 dark:bg-slate-900/50 flat no shadows shrink-0 fixed">
+<div class="flex items-center gap-4 mb-8 pr-4">
+<img alt="School Logo" class="w-12 h-12 rounded-full shadow-sm" data-alt="School logo placeholder with initials TP on blue background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiB32xwQ0kSRLSPv0VtfrBOanVby6BZfQ9Lh5UYTFHyeT4gbw0_KZupcaoS7sJ212d_RDnzbQS8Gi7ILkwWYOt2ydrAA43B3QTHq1U-UjInTmmDbYoScRklpMDnuwZlICdLLSGUlCu67kHXz5MR_g1kxcXVGGKbO_X-Oj-ec11laXNkzGF0PL0KWZmUSSBNM3i8dfh-y3uXPLjkDtz-3rxVdumlBVz5gLSMUYccKtNCwe_pZ378bdxZbo_3Z5bdEXKAC2cYw6bybw5"/>
+<div>
+<h2 class="font-headline-md text-headline-md font-black text-blue-600">Termiz Presidential</h2>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Academic Portal • v1.0.2</p>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<a class="flex items-center gap-4 py-3 px-4 font-lexend text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-full mr-4 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 font-lexend text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold rounded-r-full mr-4 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Student List</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 font-lexend text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-full mr-4 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="grade">grade</span>
+<span>Grades</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 font-lexend text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-full mr-4 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="feed">feed</span>
+<span>News Feed</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 font-lexend text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-r-full mr-4 hover:pl-2 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</div>
+</nav>
+<!-- Top App Bar (Mobile/Tablet) -->
+<header class="md:hidden flex items-center justify-between px-4 h-16 w-full fixed top-0 z-50 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+<button class="text-blue-600 dark:text-blue-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-95 transition-transform p-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<span class="text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400 font-lexend">EduTech Pro</span>
+<button class="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-95 transition-transform p-1 rounded-full">
+<img alt="User profile" class="w-8 h-8 rounded-full" data-alt="User profile avatar with initials UP on light blue background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzADzBDa5NX9ynj1u1HpvFQCEcFFufjNRrtvwLAVnKo2d5YgCMQeOj6wRwwmpherpgEtGSj0j42eozToBV1L-9GGNtDUqk4HKsKcqr0QHWJrDpbMlE-sr8I5YqHOsfim7kii_xyXx2r8JH-2kb4tsfFV-GATazm5p-YHrLtOeoMTZjy8vyPe136ECg8gGOtMItKDfAnDwb_YfTkwcyWqDG1a7SyqhMiukJmuMhvpCFnrAaH-iT-qX3iNwPomKLrkaEgEaFZ0U3UNLN"/>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="w-full md:ml-72 mt-16 md:mt-0 p-container-padding flex flex-col gap-margin-md max-w-7xl mx-auto">
+<!-- Header Section -->
+<section class="flex flex-col md:flex-row justify-between items-start md:items-center gap-gutter">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Student List</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Visual Arts - Summative Assessment</p>
+</div>
+<div class="flex flex-col sm:flex-row gap-unit w-full md:w-auto">
+<!-- Search Bar -->
+<div class="relative w-full sm:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-md text-body-md placeholder:text-outline" placeholder="Search students..." type="text"/>
+</div>
+<!-- Class Filter -->
+<div class="relative w-full sm:w-48">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="filter_list">filter_list</span>
+<select class="w-full pl-10 pr-8 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-all font-body-md text-body-md">
+<option>Grade 9-A</option>
+<option>Grade 9-B</option>
+<option>Grade 10-A</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</section>
+<!-- Student Grid (Bento style inspiration) -->
+<section class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-gutter">
+<!-- Student Card 1: Pending -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4 border border-transparent hover:border-primary/20 transition-colors">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<img alt="Student Avatar" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait of a young female student with short dark hair smiling gently against a plain light background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBkjTFwGXkROlK_dMQDDQuCQqO05Fy2fP0kpzr3KNeJnLpynvZkj8z6UIc-XLOxKkl0uNSeEc6dZs354tV74uY4-wO9TRtDXuRrfhxerdPkPxoANFZHYjHueMLoMPN0SrvF7KXTMEQA68LkenxTnVR1-viQOjnLyDzSw3Q6B5jvxjIG94maJJwlFPwhRaEW_qCwgUt9a27F6gxXBS7KtBJ8DvVKjI4qsuLZsqqauX38dOV4LbGBVnKLvSQLhnOEa1sinAMhd4kl-NWK"/>
+<div>
+<h3 class="font-headline-md text-[18px] leading-snug font-medium text-on-surface">Emma Watson</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: STU-09A-104</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container text-on-surface-variant rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Pending
+                    </span>
+</div>
+<div class="mt-2 p-4 bg-surface rounded-lg border border-surface-variant flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between">
+                        Visual Arts - Summative
+                        <span class="text-outline">/100</span>
+</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-lg text-body-lg text-center" max="100" min="0" placeholder="Enter score" type="number"/>
+</div>
+<div class="flex justify-end gap-2 mt-auto pt-2">
+<button class="px-4 py-2 font-label-lg text-label-lg text-primary hover:bg-primary-fixed rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span> Edit
+                    </button>
+<button class="px-4 py-2 font-label-lg text-label-lg bg-primary text-on-primary hover:bg-primary/90 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="save">save</span> Save
+                    </button>
+</div>
+</div>
+<!-- Student Card 2: Graded -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4 border border-primary/10">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<img alt="Student Avatar" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait of a young male student in a casual hoodie looking confidently at the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZ5p6PXnDih1hjTc1BJ6g-GxqmgUMazi1HNolg4iYZWbcP2W1nSIZElIoiwcn2T2BjBFYMIGlJq3fkiZKpzs8mQ601geL7mDLJJgRUGy13U4KPpTZ-hp8xWEFe5CSycuj9-4azq73Yt9fDvBZNFSYBga7GSUNPnSLlNT5ZU4xTz_j-Ag1HQa34hv7Mmw8OZOsc4VHmURwVJr2H3KoAa3HaQ-4tIsNsrMzua0Xq_0dYjAk7MWnrJM1DYRTAM9fXZFoAsl34Sm8In8l9"/>
+<div>
+<h3 class="font-headline-md text-[18px] leading-snug font-medium text-on-surface">Lucas Chen</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: STU-09A-105</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Graded
+                    </span>
+</div>
+<div class="mt-2 p-4 bg-surface rounded-lg border border-surface-variant flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between">
+                        Visual Arts - Summative
+                        <span class="text-outline">/100</span>
+</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-lg text-body-lg text-center font-bold" max="100" min="0" readonly="" type="number" value="92"/>
+</div>
+<div class="flex justify-end gap-2 mt-auto pt-2">
+<button class="px-4 py-2 font-label-lg text-label-lg text-primary hover:bg-primary-fixed rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span> Edit
+                    </button>
+<!-- Save hidden/disabled state when graded -->
+</div>
+</div>
+<!-- Student Card 3: Pending -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4 border border-transparent hover:border-primary/20 transition-colors">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<img alt="Student Avatar" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Close up portrait of a young woman with natural makeup looking directly ahead softly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnghH7aal8tA__cvTCsewOcmRHmLYPn0awvqG-gaHB4GTfhku8XL2mX-VjJ2IMob3hYrfVs6ziNR8jDu6J1AZYOsKh3uy0In8Zd0ZkaEME8_ANnXAZ8f-UOrHDQd__bTyBrQxqD7mI-DUn9ULBrFtjj09d-lSZ6ZxVj0NSw6U1-1h4ix7f7Tyft28vOwgX32iXHQKw--OYLK2_xfpl7JpIDgt_iyC9wXkw3SttkpAdP6XxhhjgyEPMnMWPjDCY_0H7FfO88i94qSFg"/>
+<div>
+<h3 class="font-headline-md text-[18px] leading-snug font-medium text-on-surface">Sophia Patel</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: STU-09A-106</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-surface-container text-on-surface-variant rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-outline"></span> Pending
+                    </span>
+</div>
+<div class="mt-2 p-4 bg-surface rounded-lg border border-surface-variant flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between">
+                        Visual Arts - Summative
+                        <span class="text-outline">/100</span>
+</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-lg text-body-lg text-center" max="100" min="0" placeholder="Enter score" type="number"/>
+</div>
+<div class="flex justify-end gap-2 mt-auto pt-2">
+<button class="px-4 py-2 font-label-lg text-label-lg text-primary hover:bg-primary-fixed rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span> Edit
+                    </button>
+<button class="px-4 py-2 font-label-lg text-label-lg bg-primary text-on-primary hover:bg-primary/90 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="save">save</span> Save
+                    </button>
+</div>
+</div>
+<!-- Student Card 4: Graded -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4 border border-primary/10">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<img alt="Student Avatar" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait of a young male student with short hair and a slight smile looking relaxed" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGrohPT3yO9gRen3amYQ56UxD_lenv56F0ozXSrtnobvJp1OcAP8vL0JtQeC5y6lBrVpZKd0h71gDqQwf_WDWvdmFYZUgkboQ4vZB63jA9ltyjMB0t_rAoWwiy7WR1UCcK6a9jL-paW5zF0YLzQ-c37HwYH2WDGatTHVJFL47i-m9KieZzpep8AVKVutMK6cFACei0m5hwRScgogiY25w8IO4qw9TUqQgCQ5zCpl-TG2dX8OE9qTZWefYFWk21m5oozhc73JmKFmPe"/>
+<div>
+<h3 class="font-headline-md text-[18px] leading-snug font-medium text-on-surface">Omar Farooq</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: STU-09A-107</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span> Graded
+                    </span>
+</div>
+<div class="mt-2 p-4 bg-surface rounded-lg border border-surface-variant flex flex-col gap-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant flex justify-between">
+                        Visual Arts - Summative
+                        <span class="text-outline">/100</span>
+</label>
+<input class="w-full px-3 py-2 bg-surface-container-lowest border border-outline-variant rounded text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-body-lg text-body-lg text-center font-bold" max="100" min="0" readonly="" type="number" value="78"/>
+</div>
+<div class="flex justify-end gap-2 mt-auto pt-2">
+<button class="px-4 py-2 font-label-lg text-label-lg text-primary hover:bg-primary-fixed rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span> Edit
+                    </button>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Nav Bar (Mobile Only) -->
+<nav class="md:hidden flex justify-around items-center h-20 pb-safe px-2 fixed bottom-0 w-full z-50 rounded-t-2xl bg-white dark:bg-slate-900 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] tap-highlight-transparent">
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-lexend text-[10px] font-medium">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-xl px-4 py-1 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined" data-icon="assessment" data-weight="fill" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span class="font-lexend text-[10px] font-medium">Grades</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined" data-icon="newspaper">newspaper</span>
+<span class="font-lexend text-[10px] font-medium">News</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-4 py-1 hover:text-blue-500" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-lexend text-[10px] font-medium">Settings</span>
+</a>
+</nav>
+</body></html>

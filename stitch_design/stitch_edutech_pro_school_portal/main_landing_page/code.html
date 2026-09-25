@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>EduTech Pro - Termiz Presidential School</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "primary-container": "#2771df",
+                    "primary": "#0058bd",
+                    "secondary-fixed-dim": "#6ddd81",
+                    "secondary": "#006e2c",
+                    "on-tertiary-container": "#fffbff",
+                    "inverse-primary": "#adc6ff",
+                    "surface-container-high": "#e5e8ee",
+                    "on-secondary-container": "#00722f",
+                    "surface": "#f7f9ff",
+                    "on-primary-fixed-variant": "#004494",
+                    "inverse-on-surface": "#eef1f7",
+                    "outline": "#727785",
+                    "on-primary-fixed": "#001a41",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#dfe3e8",
+                    "tertiary-fixed-dim": "#fbbc06",
+                    "surface-container": "#ebeef4",
+                    "on-surface-variant": "#424753",
+                    "on-secondary-fixed": "#002108",
+                    "tertiary-container": "#956e00",
+                    "on-error-container": "#93000a",
+                    "surface-dim": "#d7dae0",
+                    "on-tertiary-fixed-variant": "#5c4300",
+                    "surface-container-low": "#f1f4fa",
+                    "surface-container-highest": "#dfe3e8",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#f7f9ff",
+                    "on-surface": "#181c20",
+                    "secondary-fixed": "#89fa9b",
+                    "tertiary": "#765700",
+                    "on-secondary-fixed-variant": "#005320",
+                    "surface-tint": "#005ac1",
+                    "on-primary-container": "#fefcff",
+                    "primary-fixed-dim": "#adc6ff",
+                    "secondary-container": "#86f898",
+                    "tertiary-fixed": "#ffdea0",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#261a00",
+                    "surface-bright": "#f7f9ff",
+                    "inverse-surface": "#2d3135",
+                    "error-container": "#ffdad6",
+                    "on-secondary": "#ffffff",
+                    "outline-variant": "#c2c6d5",
+                    "on-background": "#181c20",
+                    "primary-fixed": "#d8e2ff",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-padding": "24px",
+                    "margin-lg": "48px",
+                    "margin-md": "32px",
+                    "gutter": "16px",
+                    "unit": "8px",
+                    "margin-sm": "16px"
+            },
+            "fontFamily": {
+                    "display": ["lexend"],
+                    "headline-lg": ["lexend"],
+                    "headline-md": ["lexend"],
+                    "body-md": ["inter"],
+                    "label-lg": ["inter"],
+                    "label-sm": ["inter"],
+                    "body-lg": ["inter"]
+            },
+            "fontSize": {
+                    "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-white border-b border-gray-200 shadow-sm flex items-center justify-between px-4 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="menu">menu</span>
+<h1 class="text-xl font-bold tracking-tight text-primary font-display">EduTech Pro</h1>
+</div>
+<div class="flex items-center gap-2">
+<div class="flex bg-surface-container rounded-full p-1">
+<button class="px-2 py-1 text-[10px] font-bold text-primary bg-white rounded-full shadow-sm">UZ</button>
+<button class="px-2 py-1 text-[10px] font-medium text-outline">EN</button>
+</div>
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="minimalist avatar placeholder with soft blue circular background and subtle lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJ8e8lNPmmBQ6ZFOHybvnamR4Q8C2Q02wJIybyexNq7kPpRhEUXXA5jOhRtRM6n5dsVklbMeKtJ3BXyAOLCeX--FfX1Yo8g7VsC1wAHrxQjrw3x795kFinlQJI-q1UcbK_7y1FempH6pSBxDhY4ZZ30FnposPl51UJ--1zN-_7QDLtlLrchBRCRagVkAp_ekMeHWQyndTUhGu5C9k2x5GN9J6p02hgKejgkWunrMi_k1hki8Epf47dlF8P049aswEKWlRgoy1MmEa5"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pt-20 pb-24 px-container-padding flex flex-col gap-8">
+<!-- Hero Section -->
+<section class="relative overflow-hidden rounded-3xl bg-primary py-10 px-6 text-on-primary">
+<div class="relative z-10">
+<span class="inline-block bg-white/20 px-3 py-1 rounded-full text-label-sm mb-4 backdrop-blur-md">Welcome to Termiz Presidential</span>
+<h2 class="font-display text-headline-lg mb-4">Empowering the Leaders of Tomorrow.</h2>
+<p class="font-body-md opacity-90 leading-relaxed max-w-[280px]">Access your academic universe through our unified digital portal designed for excellence.</p>
+</div>
+<div class="absolute -right-8 -bottom-8 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+<div class="absolute -left-10 -top-10 w-32 h-32 bg-primary-container/30 rounded-full blur-xl"></div>
+</section>
+<!-- AI Daily Announcements -->
+<section class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="font-display text-headline-md text-on-surface">Daily Pulse</h3>
+<span class="material-symbols-outlined text-primary" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-5 border border-primary/10">
+<div class="flex items-start gap-3 mb-4">
+<div class="bg-primary-container p-2 rounded-xl">
+<span class="material-symbols-outlined text-white" data-icon="smart_toy">smart_toy</span>
+</div>
+<div>
+<p class="font-label-lg text-primary">AI Assistant</p>
+<p class="text-on-surface font-medium">"Good morning, Termiz! Here is your update for today."</p>
+</div>
+</div>
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+<!-- News Card 1 -->
+<div class="min-w-[240px] bg-white rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+<div class="h-24 bg-surface-dim relative">
+<img class="w-full h-full object-cover" data-alt="modern school hallway with glass windows and bright natural sunlight reflecting on polished floors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuxwipD7oo0uMdmZw5kv79BknxBYeTRl0I1pzQ53JX97hx57gyg6AxQzj84eHv0LTAmQMUFsZtCYHAUH_6y0Uqi5oN5dWEDtOmtREbihb8cj_pTIyJlbyQQYK-iBMBPJ6OE3YQpbHejkU-q-ngdeJqnyd1k2FnjhX_-uBKzO5olUjSkbDX4_UtgUtBezTHsbTenMHoC8gDcarX4lCTiBQKVvvL509t76t7vXi-rtXpf0aYzLaCOdPN-IapJAGxvZ7-V5cQRUanxxLB"/>
+<div class="absolute top-2 right-2 bg-secondary text-white text-[10px] px-2 py-0.5 rounded-full">New</div>
+</div>
+<div class="p-3">
+<p class="text-label-sm text-outline mb-1">Academic</p>
+<h4 class="font-display text-label-lg font-bold truncate">Math Olympiad Registration</h4>
+</div>
+</div>
+<!-- News Card 2 -->
+<div class="min-w-[240px] bg-white rounded-xl shadow-sm border border-surface-variant overflow-hidden">
+<div class="h-24 bg-surface-dim relative">
+<img class="w-full h-full object-cover" data-alt="university graduation cap on a stack of books representing academic success and graduation ceremony" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4nLKOKPogqrj454utaGQDAvU6Ki6oWAF7nz_OVsqjhn5tb9ZqBlmuuAbYw-xnx7051tE076HW1a4E3ezDaP4G32HFxrCwfemlpU_CawIWw-dVb676ZGSG5t7aSMn_J09TLJKseoYhCNfjf0-C-TapcejBVMck1oDyf15j0E3VFp0BVb566BSqpdKZHkuOFfFppHvu8EwXT8vcgQ6taUrfylQEmr4ACoWfl97PEqaUzYvjGJIJVSfdr_d-gSd7ZC2MBLI3bj1x0Etv"/>
+<div class="absolute top-2 right-2 bg-tertiary text-white text-[10px] px-2 py-0.5 rounded-full">Event</div>
+</div>
+<div class="p-3">
+<p class="text-label-sm text-outline mb-1">Community</p>
+<h4 class="font-display text-label-lg font-bold truncate">Alumni Networking Gala</h4>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Feature Overview -->
+<section class="flex flex-col gap-6">
+<h3 class="font-display text-headline-md text-on-surface">Core Features</h3>
+<div class="grid grid-cols-1 gap-4">
+<!-- Teacher Panel -->
+<div class="flex items-center gap-5 p-4 bg-white rounded-2xl shadow-sm border border-surface-container">
+<div class="w-14 h-14 rounded-2xl bg-primary-fixed-dim flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="school">school</span>
+</div>
+<div>
+<h4 class="font-display text-body-lg font-bold">Teacher Panel</h4>
+<p class="text-label-sm text-outline">Manage curriculums and student progress with AI-driven insights.</p>
+</div>
+</div>
+<!-- Student Dashboard -->
+<div class="flex items-center gap-5 p-4 bg-white rounded-2xl shadow-sm border border-surface-container">
+<div class="w-14 h-14 rounded-2xl bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-3xl" data-icon="dashboard_customize">dashboard_customize</span>
+</div>
+<div>
+<h4 class="font-display text-body-lg font-bold">Student Dashboard</h4>
+<p class="text-label-sm text-outline">Personalized learning paths and interactive grade tracking.</p>
+</div>
+</div>
+<!-- Secure Access -->
+<div class="flex items-center gap-5 p-4 bg-white rounded-2xl shadow-sm border border-surface-container">
+<div class="w-14 h-14 rounded-2xl bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-container text-3xl" data-icon="encrypted">encrypted</span>
+</div>
+<div>
+<h4 class="font-display text-body-lg font-bold">Secure Access</h4>
+<p class="text-label-sm text-outline">Enterprise-grade encryption for all institutional data and communications.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Call to Action -->
+<section class="py-6">
+<button class="w-full bg-primary text-on-primary py-5 rounded-2xl font-display font-bold text-body-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-3">
+                Join the Portal
+                <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<p class="text-center mt-4 text-label-sm text-outline">Access restricted to verified school members.</p>
+</section>
+<!-- Footer -->
+<footer class="w-full py-8 mt-auto border-t border-gray-200 dark:border-gray-800">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center px-6 gap-4">
+<div class="text-center">
+<div class="text-lg font-semibold text-slate-900 dark:text-white mb-2 font-display">Termiz Presidential School</div>
+<p class="font-lexend text-xs text-slate-500">© 2024 Termiz Presidential School. All Rights Reserved.</p>
+</div>
+<div class="flex flex-wrap justify-center gap-x-6 gap-y-2">
+<a class="text-slate-500 hover:text-blue-600 font-lex text-xs hover:underline transition-opacity" href="#">Privacy Policy</a>
+<a class="text-slate-500 hover:text-blue-600 font-lex text-xs hover:underline transition-opacity" href="#">Help Center</a>
+<a class="text-slate-500 hover:text-blue-600 font-lex text-xs hover:underline transition-opacity" href="#">Contact Us</a>
+</div>
+</div>
+</footer>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] rounded-t-2xl flex justify-around items-center h-20 pb-safe px-2 border-t border-gray-100">
+<!-- Home Active -->
+<a class="flex flex-col items-center justify-center text-blue-600 bg-blue-50 rounded-xl px-4 py-1 tap-highlight-transparent" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-lexend text-[10px] font-medium">Home</span>
+</a>
+<!-- News -->
+<a class="flex flex-col items-center justify-center text-slate-500 px-4 py-1 hover:text-blue-500 tap-highlight-transparent" href="#">
+<span class="material-symbols-outlined" data-icon="newspaper">newspaper</span>
+<span class="font-lexend text-[10px] font-medium">News</span>
+</a>
+<!-- Help (Mapped to assessment for Grades or settings/help logic) -->
+<a class="flex flex-col items-center justify-center text-slate-500 px-4 py-1 hover:text-blue-500 tap-highlight-transparent" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-lexend text-[10px] font-medium">Help</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-slate-500 px-4 py-1 hover:text-blue-500 tap-highlight-transparent" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-lexend text-[10px] font-medium">Settings</span>
+</a>
+</nav>
+</body></html>

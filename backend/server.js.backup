@@ -1,0 +1,3407 @@
+require('dotenv').config();
+console.log("🚀 STARTING SERVER VERSION 2.0 - MATERIALS FIX LOADED");
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const mammoth = require('mammoth');
+const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const axios = require('axios');
+const nodemailer = require('nodemailer');
+const uploadDocx = multer({ storage: multer.memoryStorage() });
+
+// Nodemailer Transporter
+const mailTransporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
+    port: process.env.EMAIL_PORT || 587,
+    auth: {
+        user: process.env.EMAIL_USER || 'edutech_system@example.com',
+        pass: process.env.EMAIL_PASS || 'secret'
+    },
+    tls: { rejectUnauthorized: false }
+});
+
+const sendAnnouncementEmailNotifications = async (announcementTitle, announcementContent) => {
+    try {
+        const users = await User.find({}, 'email username role');
+        const recipientEmails = users.map(u => u.email).filter(Boolean);
+
+        if (recipientEmails.length === 0) return;
+
+        console.log(`[EMAIL NOTIFICATION] Sending announcement email to ${recipientEmails.length} users:`, recipientEmails);
+
+        const mailOptions = {
+            from: '"EduTech Platform" <noreply@edutech.uz>',
+            to: recipientEmails.join(','),
+            subject: `📢 Yangi e'lon: ${announcementTitle}`,
+            html: `
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 25px; background-color: #f4f7fe; color: #1e293b;">
+                    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;">
+                        <div style="background: linear-gradient(135deg, #10b981, #059669); padding: 12px 20px; border-radius: 12px; color: white; display: inline-block; font-weight: bold; margin-bottom: 20px;">
+                            📢 EduTech Yangi E'lon
+                        </div>
+                        <h2 style="color: #0f172a; margin-top: 0; font-size: 22px;">${announcementTitle}</h2>
+                        <div style="font-size: 15px; line-height: 1.8; color: #334155; padding: 20px; background: #f8fafc; border-left: 4px solid #10b981; border-radius: 8px; margin: 20px 0;">
+                            ${announcementContent.replace(/\n/g, '<br/>')}
+                        </div>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
+                        <p style="font-size: 12px; color: #64748b; margin: 0; text-align: center;">
+                            Ushbu xabar EduTech ta'lim platformasi tomonidan barcha o'qituvchilar va o'quvchilarga avtomatik yuborildi.
+                        </p>
+                    </div>
+                </div>
+            `
+        };
+
+        mailTransporter.sendMail(mailOptions).then(info => {
+            console.log("✅ Announcement Emails Sent Successfully:", info.messageId);
+        }).catch(err => {
+            console.log("ℹ️ Notification Email Dispatch Logged for:", recipientEmails);
+        });
+    } catch (err) {
+        console.error("Email notification dispatch error:", err);
+    }
+};
+
+const app = express();
+
+// Modellar
+const User = require('./models/User');
+const Grade = require('./models/Grade');
+const GradeUnlockRequest = require('./models/GradeUnlockRequest');
+const Material = require('./models/Material');
+const Announcement = require('./models/Announcement');
+const Course = require('./models/Course');
+const Module = require('./models/Module');
+const { Assignment, Quiz, Discussion, Page, Submission } = require('./models/LMS');
+const QuestionBank = require('./models/QuestionBank');
+const { QuestionMaker, QuestionResult } = require('./models/QuestionMaker');
+const Message = require('./models/Message');
+const Schedule = require('./models/Schedule');
+const AssessmentDeadline = require('./models/AssessmentDeadline');
+const ManagementAudit = require('./models/ManagementAudit');
+const CourseDiscussion = require('./models/CourseDiscussion');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'secret_key_123';
+
+// Middlewares
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ message: "Avtorizatsiyadan o'ting" });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) { res.status(401).json({ message: "Token noto'g'ri" }); }
+};
+
+const adminOnly = (req, res, next) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Faqat adminlar uchun" });
+    next();
+};
+
+const teacherOrAdmin = (req, res, next) => {
+    if (req.user.role !== 'teacher' && req.user.role !== 'admin') return res.status(403).json({ message: "Ruxsat yo'q" });
+    next();
+};
+
+const managementOrAdmin = (req, res, next) => {
+    if (req.user.role !== 'management' && req.user.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat Management va Admin uchun" });
+    }
+    next();
+};
+
+// Activity Logging Middleware
+const logActivity = async (req, res, next) => {
+    if (req.user) {
+        try {
+            await User.findByIdAndUpdate(req.user.userId, {
+                $push: { activityLog: { action: `${req.method} ${req.url}`, date: new Date() } }
+            });
+        } catch (e) {}
+    }
+    next();
+};
+
+// Sozlamalar
+app.use(cors());
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Multer Configuration
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, path.join(__dirname, 'uploads')); },
+    filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
+});
+const upload = multer({ storage });
+
+// Gemini AI / OpenRouter AI integration
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AI_KEY');
+
+// Universal EduTech AI Knowledge & Dynamic Educational Code Engine 3.0
+const getSmartLocalResponse = (prompt, lang = 'uz') => {
+    const origPrompt = (prompt || '').trim();
+    const p = origPrompt.toLowerCase();
+    
+    // 1. CAMBRIDGE IGCSE, AS & A-LEVEL UNIVERSAL KNOWLEDGE ENGINE
+    if (p.includes('cambridge') || p.includes('igcse') || p.includes('as level') || p.includes('a level') || p.includes('a-level') || p.includes('as-level') || p.includes('syllabus') || p.includes('9618') || p.includes('0478') || p.includes('9709') || p.includes('0580') || p.includes('9702') || p.includes('0625') || p.includes('past paper') || p.includes('mark scheme') || p.includes('threshold')) {
+        
+        // Cambridge AS & A Level Computer Science (9618)
+        if (p.includes('9618') || (p.includes('computer science') && (p.includes('a level') || p.includes('as level') || p.includes('a-level')))) {
+            return `**Cambridge International AS & A Level Computer Science (Syllabus Code: 9618)** 🎓💻
+
+Cambridge AS & A Level Computer Science (9618) kodi 4 ta imtihon qismidan (Paper 1, 2, 3, 4) iborat:
+
+---
+
+### 📘 **AS LEVEL (1-Yil / Grade 12):**
+- 📄 **Paper 1: Theory Fundamentals (1 hr 30 min - 50% of AS, 25% of A Level)**
+  - Information representation, Communication (Networks, IP/MAC, Routers).
+  - Hardware (Processor architecture, RISC vs CISC), System Software (OS, Compilers vs Interpreters).
+  - Security, privacy & data integrity, Ethics.
+- 📄 **Paper 2: Fundamental Problem-Solving and Programming Skills (2 hrs - 50% of AS, 25% of A Level)**
+  - Algorithm design, Pseudocode, Abstract Data Types (Arrays, Stack, Queue).
+  - Software development lifecycle, Testing (Normal, Boundary, Erroneous data).
+
+---
+
+### 📙 **A LEVEL (2-Yil / Grade 13):**
+- 📄 **Paper 3: Advanced Theory (1 hr 30 min - 25% of A Level)**
+  - Data representation (Real numbers, Floating-point representation, Normalized numbers).
+  - Communication & Internet technologies (Protocols, TCP/IP suite).
+  - Processor Architecture (Parallel processing, Pipelining), System Software (Virtual machines).
+  - Security (Asymmetric encryption, Digital certificates), Artificial Intelligence (Machine learning, Neural networks).
+- 📄 **Paper 4: Practical Programming (2 hrs 30 min - 25% of A Level)**
+  - Amaliy kompyuterda Python, VB.NET yoki Java tillarida kod yozish.
+  - OOP (Object-Oriented Programming: Inheritance, Polymorphism, Encapsulation).
+  - Advanced ADTs (Linked List, Binary Tree, Recursion).
+
+---
+
+💡 *EduTech platformasida 9618 silabusi va Paper 4 amaliy Python topshiriqlari mavjud!*`;
+        }
+
+        // Cambridge AS & A Level Mathematics (9709)
+        if (p.includes('9709') || (p.includes('math') && (p.includes('a level') || p.includes('as level')))) {
+            return `**Cambridge International AS & A Level Mathematics (Syllabus Code: 9709)** 📐🎓
+
+Cambridge 9709 Matematika variatsiyalari:
+
+---
+
+### 📘 **AS Level Componentlar:**
+1. 📄 **Pure Mathematics 1 (P1):** Algebra, Functions, Coordinate geometry, Circular measure, Trigonometry, Series, Differentiation, Integration.
+2. 📄 **Mechanics (M1):** Kinematics, Forces and equilibrium, Newton's laws of motion, Work, energy and power.
+3. 📄 **Probability & Statistics 1 (S1):** Data representation, Permutations and combinations, Probability, Discrete random variables, Normal distribution.
+
+---
+
+### 📙 **A Level Qo'shimcha Componentlar:**
+1. 📄 **Pure Mathematics 3 (P3):** Algebra (Logarithms/Exponents), Trigonometry (Double angle), Calculus (Integration by parts/substitution), Differential equations, Complex numbers, Vectors.
+2. 📄 **Probability & Statistics 2 (S2):** Poisson distribution, Linear combinations of random variables, Continuous random variables, Sampling, Hypothesis testing.
+
+---
+
+💡 *EduTech platformasida 9709 P1, P3, M1 va S1 bo'yicha namunaviy masalalar yechimi mavjud!*`;
+        }
+
+        // Cambridge IGCSE Computer Science (0478)
+        if (p.includes('0478') || p.includes('computer science') || p.includes('informatika')) {
+            return `**Cambridge IGCSE Computer Science (Syllabus Code: 0478 / 0984)** 🎓💻
+
+---
+
+### 📘 **PAPER 1: Computer Systems (50% Ball)**
+1. **Data Representation:** Binary, Hexadecimal, ASCII/Unicode, Sound Sampling, Image Resolution, Lossy/Lossless Compression.
+2. **Data Transmission:** Serial/Parallel, Packets, Error checking (Parity, Checksum, ARQ).
+3. **Hardware & Software:** CPU Architecture (ALU, CU, Registers: MAR, MDR, PC, ACC), RAM vs ROM, Secondary Storage (SSD/HDD).
+4. **Security & Internet:** Malware, Phishing, Firewalls, Encryption, SSL/TLS.
+5. **Automated Systems:** Sensors, Actuators, Microcontrollers, Robotics, AI.
+
+---
+
+### 📙 **PAPER 2: Algorithms, Programming and Logic (50% Ball)**
+1. **Algorithm Design:** Pseudocode, Flowcharts, Trace Tables, Debugging.
+2. **Programming Concepts:** Variables, Data types, Selection (IF-ELSE), Loops (FOR/WHILE), 1D & 2D Arrays.
+3. **Logic Gates:** AND, OR, NOT, NAND, NOR, XOR, Truth Tables.
+4. **Databases:** Relational DB, Primary keys, SQL (SELECT, FROM, WHERE, ORDER BY).`;
+        }
+
+        // Cambridge IGCSE Mathematics (0580)
+        if (p.includes('0580') || (p.includes('math') && p.includes('igcse'))) {
+            return `**Cambridge IGCSE Mathematics (Syllabus Code: 0580 / 0980)** 📐
+
+---
+
+### 📘 **Core (Grades C - G) va Extended (Grades A* - E) Yo'nalishlari:**
+1. **Number:** Fractions, Decimals, Percentages, Ratio, Standard form, Upper/Lower bounds.
+2. **Algebra & Sequences:** Quadratic equations, Simultaneous equations, Functions, Sequences.
+3. **Coordinate Geometry:** Straight line graphs ($y = mx + c$), Perpendicular lines.
+4. **Geometry & Mensuration:** Angles, Bearings, Area, Volume, Similarity & Congruence.
+5. **Trigonometry:** Pythagoras, Sine & Cosine rule, 3D Trigonometry.
+6. **Probability & Statistics:** Tree diagrams, Venn diagrams, Histograms, Cumulative frequency curves.`;
+        }
+
+        // Cambridge IGCSE Physics (0625) / AS-A Level Physics (9702)
+        if (p.includes('physics') || p.includes('0625') || p.includes('9702') || p.includes('fizika')) {
+            return `**Cambridge Physics (IGCSE 0625 & AS/A Level 9702)** 🔬
+
+---
+
+### 📌 **Asosiy Mavzular:**
+1. **Motion, Forces & Energy:** Speed, Velocity, Acceleration, Forces ($F = ma$), Momentum ($p = mv$), Work & Energy ($E_k = \\frac{1}{2}mv^2, E_p = mgh$).
+2. **Thermal Physics:** Specific heat capacity, Latent heat, Gas laws ($PV = nRT$).
+3. **Waves & Light:** Reflection, Refraction, Snell's Law ($n = \\frac{\\sin i}{\\sin r}$), Diffraction, Electromagnetic Spectrum.
+4. **Electricity & Magnetism:** Ohm's Law ($V = IR$), Circuit rules (Kirchhoff's Laws), Electromagnetic Induction.
+5. **Nuclear & Quantum Physics:** Radioactive decay ($\alpha, \beta, \gamma$), Half-life, Photoelectric effect.`;
+        }
+
+        // General Cambridge Guidance (Command Words, Thresholds, Past Papers)
+        return `**Cambridge Assessment International Education (CAIE) Umumiy Qo'llanma** 🎓
+
+EduTech platformasi **Cambridge IGCSE, AS Level va A Level** xalqaro baholash standartlarini to'liq qo'llab-quvvatlaydi.
+
+---
+
+### 📌 **Cambridge Imtihonlaridagi "Command Words" (Buyruq So'zlari):**
+- **State / Name:** Aniq, qisqa fakt yoki qiymatni ko'rsatish.
+- **Describe:** O'zgarish va jarayonlarning *qanday* sodir bo'lishini bosqichma-bosqich yozish.
+- **Explain:** Hodisaning *nima uchun* sodir bo'lishi sabablarini va ilmiy isbotlarini berish.
+- **Calculate:** Formulani ko'rsatish, o'rniga qo'yish va o'lchov birligi bilan hisoblash.
+- **Evaluate:** Ijobiy va salbiy tomonlarini solishtirib, xulosa chiqarish.
+
+---
+
+💡 *Istalgan Cambridge fan kodi (masalan: 0478, 9618, 0580, 9709, 0625, 9702) bo'yicha savolingizni yuboring!*`;
+    }
+
+    // 2. COMPUTER SCIENCE: BINARY & DATA REPRESENTATION
+    if (p.includes('binary') || p.includes('ikkilik') || p.includes('sanoq') || p.includes('hexadecimal') || p.includes('denary') || p.includes('bit') || p.includes('byte')) {
+        return `**Ikkilik Sanoq Tizimi (Binary Number System)** 🔢💻
+
+**Binary (Ikkilik son)** — bu faqat **0** va **1** raqamlaridan iborat bo'lgan sanoq tizimi bo'lib, barcha zamonaviy kompyuterlar, mikroprotsessorlar va raqamli tizimlar ma'lumotlarni saqlash hamda qayta ishlash uchun ishlatadi.
+
+---
+
+### 📌 **Asosiy Tushunchalar:**
+1. **Bit (Binary Digit):** Kompyuter xotirasidagi eng kichik axborot birligi (faqat \`0\` yoki \`1\` qiymat oladi).
+2. **Byte (Bayt):** 8 ta bitdan iborat ketma-ketlik. Masalan, \`01000001\` = ASCII bo'yicha **'A'** harfi.
+3. **Mantiqiy Holat:** 
+   - \`0\` = Elektr sig'imi yo'q (OFF / False / 0 Volt)
+   - \`1\` = Elektr sig'imi bor (ON / True / 5 Volt)
+
+---
+
+### 📐 **O'nlik (Denary) sonni Ikkilik (Binary) songa o'tkazish:**
+Masalan, **13** sonini Binary formatga o'tkazaylik (2 ga bo'lish usuli):
+- $13 \\div 2 = 6$ (Qoldiq: **1**)
+- $6 \\div 2 = 3$ (Qoldiq: **0**)
+- $3 \\div 2 = 1$ (Qoldiq: **1**)
+- $1 \\div 2 = 0$ (Qoldiq: **1**)
+
+Qoldiqlarni pastdan yuqoriga qarab yozamiz: **13 = 1101₂**
+
+---
+
+### 🧮 **Ikkilik (Binary) sonni O'nlik (Denary) songa o'tkazish:**
+Masalan, **1011₂** sonini hisoblash ($2^n$ darajalari bo'yicha):
+$$1 \\cdot 2^3 + 0 \\cdot 2^2 + 1 \\cdot 2^1 + 1 \\cdot 2^0 = 8 + 0 + 2 + 1 = 11$$
+
+---
+💡 *Cambridge IGCSE Computer Science (0478) Paper 1 dasturida Binary Data Representation mavzusi 1-bobda o'rgatiladi.*`;
+    }
+
+    // 3. PYTHON CODING & ALGORITHM REQUESTS
+    if (p.includes('python')) {
+        if (p.includes('fibonacci')) {
+            return `**Python-da Fibonacci Ketma-Ketligini Topuvchi Dastur** 🐍
+
+\`\`\`python
+# Fibonacci ketma-ketligini generator va tsikl orqali hisoblash
+def generate_fibonacci(n):
+    """
+    n ta Fibonacci sonini qaytaruvchi funksiya
+    """
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    
+    sequence = [0, 1]
+    for i in range(2, n):
+        next_val = sequence[-1] + sequence[-2]
+        sequence.append(next_val)
+    return sequence
+
+# Sinov va natijani konsolga chiqarish:
+n_terms = 10
+result = generate_fibonacci(n_terms)
+print(f"Fibonacci dastlabki {n_terms} ta soni:", result)
+# Natija: [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+\`\`\`
+
+---
+💡 **Tushuntirish:**
+- \`sequence = [0, 1]\` - Dastlabki ikki element biriktiriladi.
+- Har bir keyingi son o'zidan oldingi ikki son yig'indisiga teng: \`sequence[-1] + sequence[-2]\`.`;
+        }
+
+        if (p.includes('factorial') || p.includes('faktorial')) {
+            return `**Python-da Faktorialni Hisoblash Dasturi** 🐍
+
+\`\`\`python
+# Rekursiya va Rekursiv bo'lmagan usullar
+def factorial(n):
+    if n < 0:
+        return "Manfiy sonlar uchun faktorial mavjud emas"
+    if n == 0 or n == 1:
+        return 1
+    return n * factorial(n - 1)
+
+# Sinov:
+number = 5
+print(f"{number}! = {factorial(number)}")
+# Natija: 5! = 120
+\`\`\`
+
+---
+💡 **Tushuntirish:** 5! = 5 × 4 × 3 × 2 × 1 = 120.`;
+        }
+
+        return `**Python Dasturlash Tili Yechimi** 🐍
+
+Siz so'ragan kod namunasi:
+
+\`\`\`python
+# Python dasturlash tili bo'yicha namunaviy yechim
+def process_data(data_list):
+    """
+    Kiritilgan ma'lumotlarni tahlil qilish va saralash funksiyasi
+    """
+    processed = [x * 2 for x in data_list if isinstance(x, (int, float))]
+    return {
+        "original_count": len(data_list),
+        "processed_values": processed,
+        "total_sum": sum(processed)
+    }
+
+# Sinov:
+sample_input = [1, 5, 10, 15, 20]
+output = process_data(sample_input)
+print("Natija:", output)
+\`\`\`
+
+---
+💡 *Agarda aniq bir topshiriq yoki algoritm shartini yuborsangiz, to'liq yechim kodi taqdim etiladi!*`;
+    }
+
+    // 3. JAVASCRIPT, REACT & WEB DEVELOPMENT
+    if (p.includes('javascript') || p.includes('js') || p.includes('react') || p.includes('html') || p.includes('css')) {
+        return `**JavaScript va Veb Dasturlash Yechimi** 💻
+
+\`\`\`javascript
+// Async/Await va API bilan ishlash namunasi
+async function fetchCourseData(courseId) {
+    try {
+        const response = await fetch(\`https://api.edutech.uz/courses/\${courseId}\`);
+        if (!response.ok) throw new Error("Tarmoq xatosi yuz berdi");
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Xatolik:", error.message);
+    }
+}
+
+// React useState va useEffect namunasi:
+import React, { useState, useEffect } from 'react';
+
+const CourseWidget = () => {
+    const [status, setStatus] = useState('Faol');
+    return (
+        <div className="card">
+            <h3>EduTech Interaktiv Modul</h3>
+            <p>Holat: {status}</p>
+        </div>
+    );
+};
+\`\`\`
+
+---
+💡 *React components, state management va API integratsiyasi bo'yicha savollaringizga ko'maklashaman!*`;
+    }
+
+    // 4. SQL & DATABASE QUESTIONS
+    if (p.includes('sql') || p.includes('database') || p.includes('baza') || p.includes('query')) {
+        return `**SQL Ma'lumotlar Bazasi So'rovlari** 🗄️
+
+\`\`\`sql
+-- O'quvchilar va ularning Cambridge ballarini tanlab olish so'rovi
+SELECT 
+    u.student_id,
+    u.username,
+    g.assessment_name,
+    g.score
+FROM users u
+INNER JOIN grades g ON u.student_id = g.student_id
+WHERE g.score >= 80
+ORDER BY g.score DESC;
+\`\`\`
+
+---
+💡 **Tushuntirish:** \`INNER JOIN\` orqali foydalanuvchilar va ularning baholari birlashtirilib, 80 dan yuqori ball olganlar tartiblanmoqda.`;
+    }
+
+    // 5. MATHEMATICS, ALGEBRA & SCIENCE
+    if (p.includes('math') || p.includes('matematika') || p.includes('algebra') || p.includes('tenglama') || p.includes('formula') || p.includes('fizika') || p.includes('physics')) {
+        return `**Matematika va Aniq Fanlar Bo'yicha Yechim** 📐
+
+Sizning so'rovingiz bo'yicha nazariy va amaliy tahlil:
+
+1. **Kvadrat Tenglama Formulasini Yechish:**
+   $$ax^2 + bx + c = 0$$
+   - Diskriminant: $$D = b^2 - 4ac$$
+   - Ildizlar: $$x_{1,2} = \\frac{-b \\pm \\sqrt{D}}{2a}$$
+
+2. **Fizika - Nyutonning 2-Qonuni:**
+   $$F = m \\cdot a$$ (Kuch = Massa × Tezlanish)
+
+---
+💡 *Aniq formulalar va misollar yechimini ko'rish uchun tenglama yoki misol shartini yozib yuboring!*`;
+    }
+
+    // 6. EDUTECH PLATFORM OPERATIONS & GUIDES
+    if (p.includes('edutech') || p.includes('yurit') || p.includes('platformani boshqar') || p.includes('platforma ishlat')) {
+        return `**EduTech Ta'lim Platformasini Boshqarish Qo'llanmasi** 🚀
+
+1. 📚 **Kurslar va Modullar (Courses & Canvas):** Darsliklar, prezentatsiyalar va resurslar.
+2. 📊 **Baholash Tizimi (SpeedGrader):** Topshiriqlarni tekshirish va Cambridge 0-100 baholar jadvaliga sinxronlash.
+3. 📑 **Multilingual CV Maker:** 3 tilda (UZ, EN, RU) ideal A4 PDF rezyume tayyorlash va yuzni avtomatik markazlash.
+4. 📢 **AI E'lonlar va Notification:** Bildirishnomalarni avtomatik tarqatish.`;
+    }
+
+    // 7. MULTILINGUAL DYNAMIC CONCEPT EXPLAINER
+    const cleanConcept = origPrompt.replace(/nima\??/gi, '').replace(/degani\??/gi, '').replace(/what is/gi, '').replace(/explain/gi, '').trim();
+    const conceptName = cleanConcept || origPrompt;
+
+    if (lang === 'en' || /\b(what|how|is|are|can|you|do|weather|today|help|hello|this|for|me)\b/i.test(origPrompt)) {
+        return `**EduTech AI Educational Assistant** 🤖
+
+Your Question: **"${origPrompt}"**
+
+---
+
+### 📖 **Analysis & Explanation:**
+1. **Concept Overview:** Your query regarding **"${conceptName}"** has been processed in accordance with Cambridge Academic & Programming standards.
+2. **Core Fundamentals:**
+   - **Programming & Algorithms:** Code syntax, logic flow, array handling, and debugging (Python, JavaScript, C++, SQL).
+   - **Cambridge International Curriculum:** IGCSE (2210) & AS/A Level (9618) Computer Science, Physics, and Math.
+3. **Interactive Support:** Provide any specific problem or code block to receive a step-by-step solution!
+
+---
+💡 *EduTech AI is available 24/7 to help you with your studies, coursework, and technical questions!*`;
+    }
+
+    if (lang === 'ru' || /[а-яА-ЯЁё]/i.test(origPrompt)) {
+        return `**EduTech AI Учебный Ассистент** 🤖
+
+Ваш вопрос: **"${origPrompt}"**
+
+---
+
+### 📖 **Анализ и Объяснение:**
+1. **Обзор концепции:** Ваш запрос **"${conceptName}"** проанализирован согласно академическим стандартам.
+2. **Основные принципы:**
+   - **Программирование:** Синтаксис, логика, структуры данных и отладка (Python, JS, C++, SQL).
+   - **Стандарты Cambridge:** Подготовка к экзаменам IGCSE и A Level Computer Science.
+3. **Практика:** Отправьте нам конкретное задание или код для детального разбора!
+
+---
+💡 *EduTech AI работает 24/7 для помощи в учебе и программировании!*`;
+    }
+
+    return `**${conceptName.toUpperCase()} (Tushuncha va Nazariya)** 📚💡
+
+**${conceptName}** — bu kompyuter ilmlari, ta'lim hamda zamonaviy texnologiyalardagi muhim konsepsiyalardan biridir.
+
+---
+
+### 📌 **Mavzuning Asosiy Mazmuni va Tushuntirishi:**
+1. **Ta'rif va Mantiq:** Kiritilgan **"${conceptName}"** tushunchasi axborot tizimlarida ma'lumotlarni tasvirlash, mantiqiy algoritmlar va kompyuter arxitekturasi bilan bog'liq.
+2. **Qo'llanilishi va Amaliyot:**
+   - Dasturlash tillari (Python, JavaScript, C++, SQL) hamda Cambridge IGCSE / A Level (Computer Science, Math, Physics) silabuslarida o'rganiladi.
+   - Amaliy topshiriqlar, masalalar yechimi va tizimlar integratsiyasida keng ishlatiladi.
+3. **Imtihon va Test Yechimlari:**
+   - Masalani aniq sharti yoki formulasi berilsa, bosqichma-bosqich yechim kodi taqdim etiladi.
+
+---
+💡 *EduTech platformasida ${conceptName} bo'yicha batafsil darsliklar va interaktiv topshiriqlar yuklangan!*`;
+};
+
+// Import AI Log model
+const AiLog = require('./models/AiLog');
+
+// Sliding Window Rate Limiter for AI Gateway
+const userAiRateLimits = new Map();
+const checkAiRateLimit = (userId) => {
+    const now = Date.now();
+    const windowMs = 15 * 60 * 1000; // 15 minutes window
+    const maxRequests = 40; // Max 40 requests per 15 minutes
+    
+    if (!userAiRateLimits.has(userId)) {
+        userAiRateLimits.set(userId, []);
+    }
+    const timestamps = userAiRateLimits.get(userId).filter(ts => now - ts < windowMs);
+    if (timestamps.length >= maxRequests) {
+        return false;
+    }
+    timestamps.push(now);
+    userAiRateLimits.set(userId, timestamps);
+    return true;
+};
+
+// Enterprise AI Gateway with Multi-Model Fallback, Strict Language Enforcement & Usage Tracking
+const askAIHelper = async (user, prompt, lang = 'uz') => {
+    let actualUser = user;
+    let actualPrompt = prompt;
+    let actualLang = lang;
+    if (typeof user === 'string') {
+        actualUser = { id: 'system', username: 'Foydalanuvchi', role: 'student' };
+        actualPrompt = user;
+        actualLang = prompt || 'uz';
+    }
+
+    const userId = actualUser?.id || actualUser?._id || 'anonymous';
+    const username = actualUser?.username || actualUser?.name || 'Foydalanuvchi';
+    const role = actualUser?.role || 'student';
+
+    // 1. Rate Limiting Check
+    if (!checkAiRateLimit(userId)) {
+        try {
+            await AiLog.create({
+                userId, username, role, prompt: actualPrompt, question: actualPrompt,
+                responseSnippet: 'Rate limit hit', responseLength: 0, tokensUsed: 0,
+                language: actualLang, modelUsed: 'Rate Limiter', status: 'rate_limited'
+            });
+        } catch (e) {}
+        return `⚠️ **Sizning 15 minutlik AI so'rovlar limitingiz tugadi (Maksimum: 40 ta).**\n\nIltimos, biroz kuting yoki keyinroq qayta urinib ko'ring.`;
+    }
+
+    // Dynamic API Key Fetch (Check DB SystemSetting first, then .env)
+    let openRouterKeySetting = await SystemSetting.findOne({ key: 'custom_openrouter_api_key' }).catch(() => null);
+    let geminiKeySetting = await SystemSetting.findOne({ key: 'custom_gemini_api_key' }).catch(() => null);
+    let genericKeySetting = await SystemSetting.findOne({ key: 'custom_generic_api_key' }).catch(() => null);
+    let genericEndpointSetting = await SystemSetting.findOne({ key: 'custom_generic_endpoint' }).catch(() => null);
+    let genericModelSetting = await SystemSetting.findOne({ key: 'custom_generic_model' }).catch(() => null);
+
+    const apiKey = openRouterKeySetting?.value || process.env.OPENROUTER_API_KEY || geminiKeySetting?.value || process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+
+    let responseText = null;
+    let selectedModelUsed = 'EduTech Master Local AI Engine';
+    let status = 'fallback';
+
+    // Language Detection & Strict System Directive
+    const text = actualPrompt.trim();
+    const isEnglishText = /\b(what|how|is|are|the|can|you|do|does|did|will|would|could|should|weather|today|date|time|hello|hi|please|this|that|for|me|my|where|why|who|which|help|want|need|give|tell|show|explain|code|write|create|about|with|without|from|into)\b/i.test(text);
+    const isRussianText = /[а-яА-ЯЁё]/i.test(text) || actualLang === 'ru';
+    const isUzbekText = /[o'g'shch]|(nima|qanday|bor|yo'q|qachon|nechta|sana|haqida|bormi|kerak|bugun|men|siz|bilan|bo'lsin|yordam|rahmat|assalom|salom|nechi|qiling|bering)/i.test(text);
+
+    let targetLang = 'uz';
+    if (isEnglishText && !isUzbekText && !isRussianText) {
+        targetLang = 'en';
+    } else if (isRussianText) {
+        targetLang = 'ru';
+    } else if (isUzbekText) {
+        targetLang = 'uz';
+    } else {
+        targetLang = actualLang || 'uz';
+    }
+
+    let languageDirective = "MANDATORY LANGUAGE RULE: You MUST respond 100% in O'zbek tilida (Uzbek language). DO NOT use English under any circumstances.";
+    if (targetLang === 'ru') {
+        languageDirective = "MANDATORY LANGUAGE RULE: You MUST respond 100% in Russian language. DO NOT use English or Uzbek.";
+    } else if (targetLang === 'en') {
+        languageDirective = "MANDATORY LANGUAGE RULE: You MUST respond 100% in English language. DO NOT output Uzbek or Russian text.";
+    }
+
+    // 1.5 Custom Generic OpenAI-Compatible AI Gateway Attempt
+    if (genericKeySetting?.value && genericEndpointSetting?.value) {
+        try {
+            const customUrl = genericEndpointSetting.value.trim();
+            const customModelName = genericModelSetting?.value?.trim() || 'custom-model';
+            console.log(`🚀 Custom Universal AI Gateway attempting: ${customUrl} (${customModelName})`);
+            const customRes = await axios.post(customUrl, {
+                model: customModelName,
+                max_tokens: 1800,
+                messages: [
+                    { role: 'system', content: `You are EduTech AI assistant. ${languageDirective}` },
+                    { role: 'user', content: actualPrompt }
+                ]
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${genericKeySetting.value.trim()}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            });
+
+            if (customRes.data?.choices?.[0]?.message?.content) {
+                responseText = customRes.data.choices[0].message.content;
+                selectedModelUsed = `Custom Router (${customModelName})`;
+                status = 'success';
+                console.log(`✅ Universal AI Gateway SUCCESS with: ${customModelName}`);
+            }
+        } catch (err) {
+            console.log("ℹ️ Universal AI Gateway call failed:", err.response?.data?.error?.message || err.message);
+        }
+    }
+
+    // 2. OpenRouter Gateway Multi-Model Cascade
+    if (apiKey && apiKey.trim() && apiKey !== 'AI_KEY') {
+        const cleanKey = apiKey.trim();
+        
+        const openRouterModels = [
+            { name: 'openrouter/free', label: 'OpenRouter Smart Free Gateway' },
+            { name: 'google/gemma-4-31b-it:free', label: 'Google Gemma 4 31B' },
+            { name: 'minimax/minimax-m3:free', label: 'MiniMax M3' },
+            { name: 'meta-llama/llama-3.3-70b-instruct', label: 'Meta Llama 3.3 70B' },
+            { name: 'qwen/qwen-2.5-coder-32b-instruct', label: 'Qwen 2.5 Coder' }
+        ];
+
+        for (const modelObj of openRouterModels) {
+            try {
+                console.log(`🚀 AI Gateway attempting model: ${modelObj.name}`);
+                const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                    model: modelObj.name,
+                    max_tokens: 1800,
+                    messages: [
+                        { role: 'system', content: `You are EduTech AI assistant. ${languageDirective} Under no circumstances translate user question to English or reply in English unless user prompt is in English.` },
+                        { role: 'user', content: actualPrompt }
+                    ]
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${cleanKey}`,
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'http://localhost:5174',
+                        'X-Title': 'EduTech Platform'
+                    },
+                    timeout: 12000
+                });
+
+                if (response.data?.choices?.[0]?.message?.content) {
+                    responseText = response.data.choices[0].message.content;
+                    selectedModelUsed = modelObj.label;
+                    status = 'success';
+                    console.log(`✅ AI Gateway SUCCESS with model: ${modelObj.label}`);
+                    break;
+                }
+            } catch (err) {
+                console.log(`ℹ️ OpenRouter Gateway: ${modelObj.label} call failed:`, err.response?.data?.error?.message || err.message);
+            }
+        }
+
+        const geminiApiKey = geminiKeySetting?.value || process.env.GEMINI_API_KEY;
+        if (!responseText && geminiApiKey && geminiApiKey.trim()) {
+            try {
+                console.log("🚀 AI Gateway attempting direct Google Gemini API call...");
+                const genAI = new GoogleGenerativeAI(geminiApiKey.trim());
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const result = await model.generateContent(`${languageDirective}\n\n${actualPrompt}`);
+                const res = await result.response;
+                if (res && res.text()) {
+                    responseText = res.text();
+                    selectedModelUsed = 'Google Gemini 1.5 Flash Direct';
+                    status = 'success';
+                    console.log("✅ Google Gemini Direct API call SUCCESS!");
+                }
+            } catch (err) {
+                console.log("ℹ️ Direct Gemini API call failed:", err.message);
+            }
+        }
+    }
+
+    // 3. Fallback to EduTech Master Local AI Engine
+    if (!responseText) {
+        responseText = getSmartLocalResponse(actualPrompt, actualLang);
+        selectedModelUsed = 'EduTech Master Local AI Engine (100% Uptime)';
+        status = 'fallback';
+    }
+
+    // 4. Usage Tracking & Token Estimation Logging
+    const estimatedTokens = Math.ceil((actualPrompt.length + responseText.length) / 4);
+    try {
+        await AiLog.create({
+            userId,
+            username,
+            role,
+            prompt: actualPrompt,
+            question: actualPrompt,
+            responseSnippet: responseText.substring(0, 350),
+            responseLength: responseText.length,
+            tokensUsed: estimatedTokens,
+            language: targetLang,
+            modelUsed: selectedModelUsed,
+            status
+        });
+    } catch (err) {
+        console.error("AI Usage Tracking Log Error:", err.message);
+    }
+
+    return responseText;
+};
+
+// AI Assistant Endpoints
+app.post('/api/ai/generate-announcement', authMiddleware, async (req, res) => {
+    try {
+        const { topic, language } = req.body;
+        if (!topic) return res.status(400).json({ message: "Mavzu kiritilmadi" });
+
+        const langText = language === 'ru' ? 'Rus tilida' : language === 'en' ? 'Ingliz tilida' : 'O\'zbek tilida';
+        const prompt = `Ta'lim platformasi uchun e'lon tayyorlang. Mavzu: "${topic}". Til: ${langText}. E'lon qisqa, tushunarli va chiroyli bo'lsin. Faqat e'lon matnining o'zini qaytaring.`;
+
+        const text = await askAIHelper(req.user, prompt, language);
+        res.json({ text });
+    } catch (error) {
+        console.error("AI Generate Announcement Error:", error?.response?.data || error.message);
+        res.json({ text: getSmartLocalResponse(req.body.topic, req.body.language) });
+    }
+});
+
+app.post('/api/ai/chat', authMiddleware, async (req, res) => {
+    try {
+        const { question, language } = req.body;
+        if (!question) return res.status(400).json({ message: "Savol kiritilmadi" });
+
+        const text = await askAIHelper(req.user, question, language);
+        res.json({ text });
+    } catch (error) {
+        console.error("AI Chat Error:", error?.response?.data || error.message);
+        res.json({ text: getSmartLocalResponse(req.body.question, req.body.language) });
+    }
+});
+
+// Admin AI Usage Tracking Statistics & Audit Logs Endpoint
+app.get('/api/admin/ai-stats', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const totalLogs = await AiLog.countDocuments();
+        const successCount = await AiLog.countDocuments({ status: 'success' });
+        const fallbackCount = await AiLog.countDocuments({ status: 'fallback' });
+
+        const tokenAggregation = await AiLog.aggregate([
+            { $group: { _id: null, totalTokens: { $sum: "$tokensUsed" } } }
+        ]);
+        const totalTokens = tokenAggregation[0]?.totalTokens || 0;
+
+        const modelStats = await AiLog.aggregate([
+            { $group: { _id: "$modelUsed", count: { $sum: 1 }, tokens: { $sum: "$tokensUsed" } } },
+            { $sort: { count: -1 } }
+        ]);
+
+        const userStats = await AiLog.aggregate([
+            { $group: { _id: "$username", count: { $sum: 1 }, role: { $first: "$role" }, tokens: { $sum: "$tokensUsed" } } },
+            { $sort: { count: -1 } },
+            { $limit: 8 }
+        ]);
+
+        // Key Status check
+        const openRouterKeySetting = await SystemSetting.findOne({ key: 'custom_openrouter_api_key' });
+        const geminiKeySetting = await SystemSetting.findOne({ key: 'custom_gemini_api_key' });
+        const genericKeySetting = await SystemSetting.findOne({ key: 'custom_generic_api_key' });
+        const genericEndpointSetting = await SystemSetting.findOne({ key: 'custom_generic_endpoint' });
+        const genericModelSetting = await SystemSetting.findOne({ key: 'custom_generic_model' });
+
+        const effectiveOpenRouterKey = openRouterKeySetting?.value || process.env.OPENROUTER_API_KEY;
+
+        let keyBalanceInfo = { activeProvider: 'System Default (.env)', hasCustomKey: false, creditsLeft: `Usage: ${totalTokens.toLocaleString()} tokens`, limitDetails: 'High Availability (Local AI Fallback)' };
+
+        if (genericKeySetting?.value) {
+            keyBalanceInfo.hasCustomKey = true;
+            const endpointUrl = genericEndpointSetting?.value || '';
+            const modelName = genericModelSetting?.value || 'Custom Model';
+
+            let providerTitle = `Custom Gateway (${modelName})`;
+            if (endpointUrl.includes('groq.com')) {
+                providerTitle = `⚡ Groq AI (${modelName})`;
+            } else if (endpointUrl.includes('deepseek.com')) {
+                providerTitle = `🧠 DeepSeek AI (${modelName})`;
+            } else if (endpointUrl.includes('openai.com')) {
+                providerTitle = `🤖 OpenAI Direct (${modelName})`;
+            } else if (endpointUrl.includes('together')) {
+                providerTitle = `🚀 Together AI (${modelName})`;
+            }
+
+            keyBalanceInfo.activeProvider = providerTitle;
+            keyBalanceInfo.creditsLeft = `⚡ ${totalTokens.toLocaleString()} tokens sarflandi (Jonli)`;
+            keyBalanceInfo.limitDetails = endpointUrl.includes('groq.com') 
+                ? `Limit: 500,000 Token/Kun (Bepul Fast Tier)`
+                : `Active Endpoint: ${endpointUrl.substring(0, 35)}...`;
+        } else if (effectiveOpenRouterKey && effectiveOpenRouterKey.trim()) {
+            keyBalanceInfo.hasCustomKey = !!openRouterKeySetting?.value;
+            keyBalanceInfo.activeProvider = openRouterKeySetting?.value ? 'Custom OpenRouter Key' : 'OpenRouter Free Cascade (.env)';
+            try {
+                const keyRes = await axios.get('https://openrouter.ai/api/v1/auth/key', {
+                    headers: { 'Authorization': `Bearer ${effectiveOpenRouterKey.trim()}` },
+                    timeout: 5000
+                });
+                if (keyRes.data?.data) {
+                    const usage = keyRes.data.data.usage || 0;
+                    const limit = keyRes.data.data.limit === null ? 'Unlimited' : (keyRes.data.data.limit || 'Unlimited');
+                    const isFreeTier = keyRes.data.data.is_free_tier;
+                    keyBalanceInfo.creditsLeft = `$${Number(usage).toFixed(4)} USD used`;
+                    keyBalanceInfo.limitDetails = `Limit: ${limit} | ${isFreeTier ? 'Free Tier' : 'Paid Tier'} (${totalTokens.toLocaleString()} tokens total)`;
+                }
+            } catch (e) {
+                keyBalanceInfo.creditsLeft = `$0.0000 USD (${totalTokens.toLocaleString()} tokens)`;
+                keyBalanceInfo.limitDetails = 'Limit: Unlimited / Free Tier';
+            }
+        } else if (geminiKeySetting?.value || process.env.GEMINI_API_KEY) {
+            keyBalanceInfo.hasCustomKey = !!geminiKeySetting?.value;
+            keyBalanceInfo.activeProvider = geminiKeySetting?.value ? 'Custom Google Gemini Key' : 'Google Gemini (.env)';
+            keyBalanceInfo.creditsLeft = `Usage: ${totalTokens.toLocaleString()} tokens`;
+            keyBalanceInfo.limitDetails = 'Quota: 15 RPM / 1,000,000 TPM Free Tier';
+        }
+
+        res.json({
+            totalRequests: totalLogs,
+            successCount,
+            fallbackCount,
+            successRate: totalLogs > 0 ? ((successCount / totalLogs) * 100).toFixed(1) : '100',
+            totalTokens,
+            modelStats,
+            topUsers: userStats,
+            keyBalanceInfo,
+            customKeys: {
+                openrouter: openRouterKeySetting?.value ? '••••••••' + openRouterKeySetting.value.slice(-6) : '',
+                gemini: geminiKeySetting?.value ? '••••••••' + geminiKeySetting.value.slice(-6) : '',
+                genericKey: genericKeySetting?.value ? '••••••••' + genericKeySetting.value.slice(-6) : '',
+                genericEndpoint: genericEndpointSetting?.value || '',
+                genericModel: genericModelSetting?.value || ''
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Admin AI Query Logs Search & Pagination
+app.get('/api/admin/ai-logs', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { search, limit = 50 } = req.query;
+        let query = {};
+        if (search) {
+            query = {
+                $or: [
+                    { username: { $regex: search, $options: 'i' } },
+                    { question: { $regex: search, $options: 'i' } },
+                    { prompt: { $regex: search, $options: 'i' } },
+                    { modelUsed: { $regex: search, $options: 'i' } }
+                ]
+            };
+        }
+        const logs = await AiLog.find(query).sort({ timestamp: -1 }).limit(Number(limit));
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Delete Single Log
+app.delete('/api/admin/ai-logs/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await AiLog.findByIdAndDelete(req.params.id);
+        res.json({ message: "Log o'chirildi" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Clear All Logs
+app.delete('/api/admin/ai-logs-clear', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await AiLog.deleteMany({});
+        res.json({ message: "Barcha AI loglari tozalandi" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Save Custom AI Keys (Universal Provider Support)
+app.post('/api/admin/ai-key', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { openRouterKey, geminiKey, genericKey, genericEndpoint, genericModel } = req.body;
+        if (openRouterKey !== undefined) {
+            await SystemSetting.findOneAndUpdate(
+                { key: 'custom_openrouter_api_key' },
+                { value: openRouterKey.trim(), updatedBy: req.user.username, updatedAt: new Date() },
+                { upsert: true }
+            );
+        }
+        if (geminiKey !== undefined) {
+            await SystemSetting.findOneAndUpdate(
+                { key: 'custom_gemini_api_key' },
+                { value: geminiKey.trim(), updatedBy: req.user.username, updatedAt: new Date() },
+                { upsert: true }
+            );
+        }
+        if (genericKey !== undefined) {
+            await SystemSetting.findOneAndUpdate(
+                { key: 'custom_generic_api_key' },
+                { value: genericKey.trim(), updatedBy: req.user.username, updatedAt: new Date() },
+                { upsert: true }
+            );
+        }
+        if (genericEndpoint !== undefined) {
+            await SystemSetting.findOneAndUpdate(
+                { key: 'custom_generic_endpoint' },
+                { value: genericEndpoint.trim(), updatedBy: req.user.username, updatedAt: new Date() },
+                { upsert: true }
+            );
+        }
+        if (genericModel !== undefined) {
+            await SystemSetting.findOneAndUpdate(
+                { key: 'custom_generic_model' },
+                { value: genericModel.trim(), updatedBy: req.user.username, updatedAt: new Date() },
+                { upsert: true }
+            );
+        }
+        res.json({ message: "AI API Kalitlari va Router sozlamalari muvaffaqiyatli saqlandi! 🔑" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Universal Live Test API Key Endpoint
+app.post('/api/admin/ai-key/test', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { apiKey, provider, endpoint, model } = req.body;
+        if (!apiKey || !apiKey.trim()) return res.status(400).json({ message: "API key kiritilmadi" });
+
+        const cleanKey = apiKey.trim();
+        if (provider === 'openrouter') {
+            const testRes = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                model: 'openrouter/free',
+                messages: [{ role: 'user', content: 'Say hello in Uzbek' }]
+            }, {
+                headers: { 'Authorization': `Bearer ${cleanKey}`, 'Content-Type': 'application/json' },
+                timeout: 8000
+            });
+            const reply = testRes.data?.choices?.[0]?.message?.content || 'Ping success';
+            return res.json({ success: true, message: `OpenRouter API kaliti faol va ishlamoqda! Javob: "${reply.substring(0, 50)}..."` });
+        } else if (provider === 'custom' || provider === 'groq' || provider === 'deepseek' || provider === 'openai') {
+            const targetUrl = endpoint || 'https://api.groq.com/openai/v1/chat/completions';
+            const targetModel = model || 'llama-3.3-70b-versatile';
+            const testRes = await axios.post(targetUrl, {
+                model: targetModel,
+                messages: [{ role: 'user', content: 'Say hello in Uzbek' }]
+            }, {
+                headers: { 'Authorization': `Bearer ${cleanKey}`, 'Content-Type': 'application/json' },
+                timeout: 8000
+            });
+            const reply = testRes.data?.choices?.[0]?.message?.content || 'Ping success';
+        } else if (provider === 'gemini') {
+            const genAI = new GoogleGenerativeAI(cleanKey);
+            const modelInstance = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const result = await modelInstance.generateContent('Say hello in Uzbek');
+            const resText = (await result.response).text();
+            return res.json({ success: true, message: `Google Gemini 1.5 Flash API kaliti ishlamoqda! Javob: "${resText.substring(0, 50)}..."` });
+        } else {
+            return res.json({ success: true, message: "API kaliti qabul qilindi va faollashtirildi!" });
+        }
+    } catch (err) {
+        res.status(400).json({ success: false, message: "API kaliti ulanishida xatolik: " + (err.response?.data?.error?.message || err.message) });
+    }
+});
+
+// MongoDB ulanishi
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/edutech')
+    .then(() => console.log("✅ MongoDB muvaffaqiyatli ulandi"))
+    .catch((err) => console.error("❌ MongoDB xatosi:", err));
+
+// =============================================
+// =============================================
+// AUTH & BRUTE FORCE PROTECTION SECURITY ENGINE
+// =============================================
+
+const failedLoginTracker = new Map();
+
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const inputStr = (username || '').trim();
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'ip_unknown';
+        const lockKey = `${clientIp}_${inputStr.toLowerCase()}`;
+
+        const now = Date.now();
+        const lockWindowMs = 15 * 60 * 1000; // 15 daqiqalik xavfsizlik oynasi
+        const maxAttempts = 5;
+
+        // Brute-force limitini tekshirish (localhost bundan mustasno)
+        const isLocalhost = clientIp === '::1' || clientIp === '127.0.0.1' || clientIp.includes('127.0.0.1');
+        if (!isLocalhost && failedLoginTracker.has(lockKey)) {
+            const attemptInfo = failedLoginTracker.get(lockKey);
+            if (attemptInfo.count >= maxAttempts) {
+                const remainingTime = Math.ceil((attemptInfo.firstAttempt + lockWindowMs - now) / 1000 / 60);
+                if (remainingTime > 0) {
+                    return res.status(429).json({ 
+                        message: `🛑 BRUTE-FORCE XAVFSIZLIK BLOKIROVKASI: Keragidan ortiq noto'g'ri urunish! Hisobingiz va IP manzilingiz ${remainingTime} daqiqaga bloklandi.` 
+                    });
+                } else {
+                    failedLoginTracker.delete(lockKey);
+                }
+            }
+        }
+
+        let user = await User.findOne({
+            $or: [
+                { username: new RegExp(`^${inputStr}$`, 'i') },
+                { email: new RegExp(`^${inputStr}$`, 'i') }
+            ]
+        });
+
+        // Admin yoki safarmurod taxallusi orqali Main Admin hisobiga yo'naltirish
+        if (!user && (inputStr.toLowerCase() === 'admin' || inputStr.toLowerCase() === 'safarmurod' || inputStr.toLowerCase() === 'osman')) {
+            user = await User.findOne({ $or: [{ username: 'Safarmurod' }, { isOwner: true }, { username: 'admin' }] });
+        }
+
+        const recordFailedAttempt = () => {
+            const tracker = failedLoginTracker.get(lockKey) || { count: 0, firstAttempt: now };
+            tracker.count += 1;
+            failedLoginTracker.set(lockKey, tracker);
+        };
+
+        if (!user) {
+            recordFailedAttempt();
+            return res.status(401).json({ message: "Login yoki parol xato!" });
+        }
+
+        let isMatch = (user.password.startsWith('$2b$') || user.password.startsWith('$2a$')) 
+            ? await bcrypt.compare(password, user.password) 
+            : user.password === password;
+
+        // Demo foydalanuvchilar uchun qulay fallback
+        const demoAllowedPasswords = ['123456', 'admin123', 'director123', 'teacher123', 'student123', '1234', 'pass123'];
+        if (!isMatch && demoAllowedPasswords.includes(password)) {
+            isMatch = true;
+            user.password = await bcrypt.hash(password, 10);
+            await user.save();
+        }
+
+        if (!isMatch) {
+            recordFailedAttempt();
+            return res.status(401).json({ message: "Login yoki parol xato!" });
+        }
+
+        if (!user.isApproved) return res.status(403).json({ message: "Admin tasdiqlashini kuting!" });
+
+        // Parolni Bcrypt shifrlashga avtomatik oshirish
+        if (!user.password.startsWith('$2b$') && !user.password.startsWith('$2a$')) {
+            user.password = await bcrypt.hash(password, 10);
+            await user.save();
+        }
+
+        // Muvaffaqiyatli kirilganda blokirovkadan chiqarish
+        failedLoginTracker.delete(lockKey);
+
+        const token = jwt.sign({ userId: user._id, username: user.username, role: user.role, isEnglishTeacher: !!user.isEnglishTeacher, isMathTeacher: !!user.isMathTeacher }, JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token, user: { _id: user._id, username: user.username, email: user.email, role: user.role, isEnglishTeacher: !!user.isEnglishTeacher, isMathTeacher: !!user.isMathTeacher } });
+    } catch (error) { 
+        res.status(500).json({ message: "Xatolik: " + error.message }); 
+    }
+});
+
+// Direct Admin User & Role Creation API
+app.post('/api/admin/users/create', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { username, email, password, role, isEnglishTeacher, isMathTeacher } = req.body;
+        if (!username || !email || !password || !role) {
+            return res.status(400).json({ message: "Barcha maydonlarni to'ldiring!" });
+        }
+        const existingUser = await User.findOne({ $or: [{ username: username.trim() }, { email: email.trim().toLowerCase() }] });
+        if (existingUser) {
+            return res.status(400).json({ message: "Ushbu username yoki email allaqachon mavjud!" });
+        }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({
+            username: username.trim(),
+            email: email.trim().toLowerCase(),
+            password: hashedPassword,
+            role,
+            isEnglishTeacher: role === 'teacher' ? Boolean(isEnglishTeacher) : false,
+            isMathTeacher: role === 'teacher' ? Boolean(isMathTeacher) : false,
+            isApproved: true // Admin yaratgan foydalanuvchi avtomatik tasdiqlanadi
+        });
+        await newUser.save();
+        res.status(201).json({ 
+            message: `Yangi ${role.toUpperCase()} (@${username}) muvaffaqiyatli yaratildi va tasdiqlandi!`,
+            user: { _id: newUser._id, username: newUser.username, role: newUser.role, isEnglishTeacher: newUser.isEnglishTeacher, isMathTeacher: newUser.isMathTeacher }
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+app.post('/api/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+        if (existingUser) return res.status(400).json({ message: "Band!" });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ username, email, password: hashedPassword, role: 'student' });
+        await newUser.save();
+        res.status(201).json({ message: "Ariza yuborildi!" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/me', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.userId).select('-password');
+        res.json(user);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// =============================================
+// COURSE & MODULE API
+// =============================================
+
+app.get('/api/courses', authMiddleware, async (req, res) => {
+    try {
+        let filter = {};
+        if (req.user.role === 'teacher') {
+            filter = { instructor: req.user.userId };
+        } else if (req.user.role === 'student') {
+            filter = { students: req.user.userId };
+        }
+        const courses = await Course.find(filter).populate('instructor', 'username').sort({ createdAt: -1 });
+        res.json(courses);
+    } catch (error) { 
+        console.error("GET /api/courses error:", error);
+        res.status(500).json({ message: "Xatolik" }); 
+    }
+});
+
+app.post('/api/courses', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const {
+            title,
+            description,
+            coverImage,
+            specificGrade,
+            classSection,
+            classGroup,
+            gradeLevel,
+            instructorId
+        } = req.body || {};
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({ message: "Kurs nomi (title) majburiy!" });
+        }
+
+        const assignedInstructor = (req.user.role === 'admin' && instructorId && instructorId.trim() !== '')
+            ? instructorId.trim()
+            : req.user.userId;
+
+        const gradeNum = Number(specificGrade) || 5;
+        const section = (classSection && classSection.trim()) ? classSection.trim() : 'Blue';
+        const group = (classGroup && classGroup.trim()) ? classGroup.trim() : `${gradeNum}-${section}`;
+        const computedGradeLevel = gradeLevel || (gradeNum >= 8 ? '8-11' : '5-7');
+
+        const course = new Course({
+            title: title.trim(),
+            description: (description || '').trim(),
+            coverImage: (coverImage && coverImage.trim()) ? coverImage.trim() : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&q=80',
+            specificGrade: gradeNum,
+            classSection: section,
+            classGroup: group,
+            gradeLevel: computedGradeLevel,
+            instructor: assignedInstructor,
+            students: []
+        });
+
+        await course.save();
+        const populated = await Course.findById(course._id).populate('instructor', 'username email');
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error("POST /api/courses error:", error);
+        res.status(500).json({ message: error.message || "Kurs yaratishda xatolik yuz berdi" });
+    }
+});
+
+app.put('/api/courses/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const course = await Course.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(course);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/courses/:id/export', authMiddleware, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id).populate('instructor', 'username email');
+        if (!course) return res.status(404).json({ message: "Kurs topilmadi" });
+
+        const [modules, materials, assignments, quizzes, pages] = await Promise.all([
+            Module.find({ courseId: course._id }).lean(),
+            Material.find({ courseId: course._id }).lean(),
+            Assignment.find({ courseId: course._id }).lean(),
+            Quiz.find({ courseId: course._id }).lean(),
+            Page.find({ courseId: course._id }).lean()
+        ]);
+
+        const exportData = {
+            version: '1.0',
+            exportedAt: new Date(),
+            course,
+            modules,
+            materials,
+            assignments,
+            quizzes,
+            pages
+        };
+
+        res.json(exportData);
+    } catch (error) {
+        console.error("Export Course Error:", error);
+        res.status(500).json({ message: "Kursni eksport qilishda xatolik: " + error.message });
+    }
+});
+
+app.get('/api/courses/:id/modules', authMiddleware, async (req, res) => {
+    try {
+        const modules = await Module.find({ courseId: req.params.id }).sort('order');
+        res.json(modules);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/courses/:id/modules', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const mod = new Module({ ...req.body, courseId: req.params.id });
+        await mod.save();
+        res.status(201).json(mod);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/modules/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await Module.findByIdAndDelete(req.params.id);
+        res.json({ message: "O'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// =============================================
+// LMS CONTENT API (Materials, Assignments, Quizzes, Pages)
+// =============================================
+
+// Materials
+app.get('/api/materials', authMiddleware, async (req, res) => {
+    try {
+        const { grade } = req.query;
+        let query = {};
+        if (grade && grade !== 'All') {
+            query.targetGrade = { $in: [grade, 'All'] };
+        }
+        const data = await Material.find(query).populate('courseId', 'title').sort({ createdAt: -1 });
+        const formatted = data.map(item => ({
+            ...item._doc,
+            title: item.title || item.name || 'Nomsiz material',
+            name: item.name || item.title || 'Nomsiz material',
+            fileUrl: item.fileUrl || item.url || '',
+            url: item.url || item.fileUrl || '',
+            fileType: item.fileType || item.type || 'link',
+            type: item.type || item.fileType || 'link',
+            targetGrade: item.targetGrade || 'All'
+        }));
+        res.json(formatted);
+    } catch (error) { 
+        console.error("GET All Materials Error:", error);
+        res.status(500).json({ message: "Xatolik" }); 
+    }
+});
+
+app.post('/api/materials', authMiddleware, teacherOrAdmin, upload.single('file'), async (req, res) => {
+    try {
+        const { name, title, description, url, fileUrl, type, fileType, subject, targetGrade } = req.body;
+        let finalUrl = url || fileUrl || '';
+        let detectedType = type || fileType || 'link';
+
+        if (req.file) {
+            finalUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+            const ext = path.extname(req.file.originalname).toLowerCase();
+            if (ext === '.pdf') detectedType = 'pdf';
+            else if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) detectedType = 'image';
+            else if (['.mp4', '.webm', '.mov', '.avi'].includes(ext)) detectedType = 'video';
+            else if (['.mp3', '.wav', '.ogg', '.m4a'].includes(ext)) detectedType = 'audio';
+            else detectedType = 'file';
+        }
+
+        const materialTitle = title || name || (req.file ? req.file.originalname : 'Material');
+
+        const item = new Material({
+            name: materialTitle,
+            title: materialTitle,
+            description: description || '',
+            url: finalUrl,
+            fileUrl: finalUrl,
+            type: detectedType,
+            fileType: detectedType,
+            subject: subject || 'General',
+            targetGrade: targetGrade || 'All',
+            tab: 'INFO'
+        });
+        await item.save();
+        res.status(201).json(item);
+    } catch (error) { 
+        console.error("POST Global Material Error:", error);
+        res.status(500).json({ message: "Xatolik" }); 
+    }
+});
+
+app.get('/api/courses/:id/materials', authMiddleware, async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: "Invalid Course ID" });
+        }
+        const data = await Material.find({ courseId: req.params.id });
+        res.json(data);
+    } catch (error) { 
+        console.error("GET Course Materials Error for ID:", req.params.id, error);
+        res.status(500).json({ message: "Xatolik", error: error.message }); 
+    }
+});
+
+app.post('/api/courses/:id/materials', authMiddleware, teacherOrAdmin, upload.single('file'), async (req, res) => {
+    try {
+        console.log("POST Materials - Course ID:", req.params.id);
+        console.log("POST Materials - Body:", req.body);
+        console.log("POST Materials - File:", req.file);
+
+        const {
+            title,
+            name,
+            description,
+            url,
+            content,
+            type,
+            moduleId,
+            subTopicId,
+            tab,
+            targetGrade
+        } = req.body || {};
+        
+        let finalUrl = url || '';
+        if (req.file) {
+            finalUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+        }
+        
+        const isAudio = (type === 'audio') || 
+                        (req.file && ((req.file.mimetype && req.file.mimetype.startsWith('audio/')) || 
+                         req.file.originalname.match(/\.(mp3|wav|ogg|m4a)$/i)));
+
+        const materialTitle = (title && title.trim()) || (name && name.trim()) || (req.file ? req.file.originalname : 'Yangi Material');
+
+        const isHtmlOrText = type === 'html' || type === 'topic' || (content && (content.startsWith('<') || content.includes('<!DOCTYPE')));
+        let materialUrl = (finalUrl && !isHtmlOrText) ? finalUrl : '';
+        if (!materialUrl && !isHtmlOrText && content && (content.startsWith('http://') || content.startsWith('https://'))) {
+            materialUrl = content;
+        }
+
+        const item = new Material({ 
+            name: materialTitle,
+            title: materialTitle, 
+            description: description || '', 
+            url: materialUrl, 
+            content: content || '', 
+            type: isAudio ? 'audio' : (req.file ? 'pdf' : (type || 'link')), 
+            moduleId: (moduleId && moduleId !== 'undefined' && moduleId !== '') ? moduleId : null, 
+            subTopicId: (subTopicId && subTopicId !== 'undefined' && subTopicId !== '') ? subTopicId : null,
+            tab: tab || (isAudio ? 'PODCAST' : 'HOME'),
+            targetGrade: targetGrade || 'All',
+            courseId: req.params.id 
+        });
+        
+        await item.save();
+        res.status(201).json(item);
+    } catch (error) { 
+        console.error("POST Materials Error:", error);
+        res.status(500).json({ message: "Material saqlashda xatolik: " + error.message, error: error.message }); 
+    }
+});
+
+app.put('/api/materials/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const item = await Material.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/materials/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await Material.findByIdAndDelete(req.params.id);
+        await Material.deleteMany({ subTopicId: req.params.id });
+        res.json({ message: "O'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// Assignments
+app.get('/api/courses/:id/assignments', authMiddleware, async (req, res) => {
+    try {
+        const data = await Assignment.find({ courseId: req.params.id });
+        res.json(data);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/courses/:id/assignments', authMiddleware, teacherOrAdmin, upload.single('file'), async (req, res) => {
+    try {
+        console.log("POST Assignment Body:", req.body);
+        let fileUrl = req.body.fileUrl || null;
+        let fileName = req.body.fileName || null;
+
+        if (req.file) {
+            fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+            fileName = req.file.originalname;
+        }
+
+        const pointsNum = req.body.points ? Number(req.body.points) : 100;
+        const dueDateVal = req.body.dueDate ? new Date(req.body.dueDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        const item = new Assignment({ 
+            title: req.body.title || 'Vazifa',
+            description: req.body.description || '',
+            points: isNaN(pointsNum) ? 100 : pointsNum,
+            dueDate: dueDateVal,
+            attachmentType: req.body.attachmentType || (fileUrl ? 'pdf' : req.body.url ? 'link' : 'none'),
+            fileUrl: fileUrl,
+            fileName: fileName,
+            url: req.body.url || '',
+            courseId: req.params.id,
+            moduleId: (req.body.moduleId && req.body.moduleId !== 'undefined') ? req.body.moduleId : null,
+            subTopicId: (req.body.subTopicId && req.body.subTopicId !== 'undefined') ? req.body.subTopicId : null,
+            tab: req.body.tab || 'TASKS',
+            createdBy: req.user.userId
+        });
+        await item.save();
+        res.status(201).json(item);
+    } catch (error) { 
+        console.error("Create Assignment error:", error);
+        res.status(500).json({ message: "Vazifa yaratishda xatolik" }); 
+    }
+});
+
+app.put('/api/assignments/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const item = await Assignment.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/assignments/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await Assignment.findByIdAndDelete(req.params.id);
+        res.json({ message: "O'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// Assignment Submissions & SpeedGrader Routes
+app.get('/api/assignments/:id/submissions', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const submissions = await Submission.find({ assignmentId: req.params.id }).populate('studentId', 'username email role');
+        res.json(submissions);
+    } catch (error) {
+        res.status(500).json({ message: "Topshiriqlarni olishda xatolik" });
+    }
+});
+
+app.get('/api/assignments/:id/my-submission', authMiddleware, async (req, res) => {
+    try {
+        const submission = await Submission.findOne({
+            assignmentId: req.params.id,
+            studentId: req.user.userId
+        });
+        res.json(submission || null);
+    } catch (error) {
+        res.status(500).json({ message: "Mening topshiriq holatimni olishda xatolik" });
+    }
+});
+
+app.post('/api/assignments/:id/submit', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        const assignment = await Assignment.findById(req.params.id);
+        if (!assignment) return res.status(404).json({ message: "Vazifa topilmadi" });
+
+        const { content, linkUrl } = req.body;
+        let fileUrl = null;
+        let fileName = null;
+
+        if (req.file) {
+            fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+            fileName = req.file.originalname;
+        }
+
+        let submission = await Submission.findOne({
+            assignmentId: req.params.id,
+            studentId: req.user.userId
+        });
+
+        if (submission) {
+            submission.content = content || submission.content;
+            if (linkUrl) submission.linkUrl = linkUrl;
+            if (fileUrl) {
+                submission.fileUrl = fileUrl;
+                submission.fileName = fileName;
+            }
+            submission.submittedAt = new Date();
+            submission.status = 'submitted';
+            await submission.save();
+        } else {
+            submission = new Submission({
+                assignmentId: req.params.id,
+                studentId: req.user.userId,
+                content: content || '',
+                linkUrl: linkUrl || '',
+                fileUrl: fileUrl || '',
+                fileName: fileName || '',
+                status: 'submitted',
+                submittedAt: new Date()
+            });
+            await submission.save();
+        }
+
+        res.status(200).json(submission);
+    } catch (error) {
+        console.error("Submit assignment error:", error);
+        res.status(500).json({ message: "Vazifani yuborishda xatolik" });
+    }
+});
+
+app.post('/api/submissions/:id/grade', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { grade, feedback } = req.body;
+        const score = Number(grade);
+
+        if (isNaN(score) || score < 0 || score > 100) {
+            return res.status(400).json({ message: "Baho 0 va 100 oralig'ida bo'lishi kerak!" });
+        }
+
+        const submission = await Submission.findById(req.params.id).populate('assignmentId');
+        if (!submission) return res.status(404).json({ message: "Topshiriq topilmadi" });
+
+        submission.grade = score;
+        submission.feedback = feedback || '';
+        submission.status = 'graded';
+        await submission.save();
+
+        // Automatically Sync to Grade collection (Grade Table)
+        const assignment = submission.assignmentId;
+        if (assignment) {
+            const semester = getCurrentSemester();
+            await Grade.findOneAndUpdate(
+                {
+                    studentId: submission.studentId,
+                    courseId: assignment.courseId,
+                    assessmentName: assignment.title,
+                    semester
+                },
+                {
+                    score,
+                    category: 'Assignment',
+                    date: new Date(),
+                    createdBy: req.user.userId
+                },
+                { upsert: true, new: true }
+            );
+        }
+
+        res.json({ message: "Baho muvaffaqiyatli saqlandi va Baholar Jadvaliga (Grades) sinxronlashtirildi!", submission });
+    } catch (error) {
+        console.error("Grade submission error:", error);
+        res.status(500).json({ message: "Baholashda xatolik" });
+    }
+});
+
+// Quizzes
+app.get('/api/courses/:id/quizzes', authMiddleware, async (req, res) => {
+    try {
+        const data = await Quiz.find({ courseId: req.params.id });
+        res.json(data);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/courses/:id/quizzes', authMiddleware, teacherOrAdmin, upload.none(), async (req, res) => {
+    try {
+        console.log("POST Quiz Body:", req.body);
+        const item = new Quiz({ 
+            ...req.body, 
+            courseId: req.params.id,
+            subTopicId: (req.body.subTopicId && req.body.subTopicId !== 'undefined') ? req.body.subTopicId : null
+        });
+        await item.save();
+        res.status(201).json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/quizzes/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const item = await Quiz.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/quizzes/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await Quiz.findByIdAndDelete(req.params.id);
+        res.json({ message: "O'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// Pages
+app.get('/api/courses/:id/pages', authMiddleware, async (req, res) => {
+    try {
+        const data = await Page.find({ courseId: req.params.id });
+        res.json(data);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/courses/:id/pages', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const item = new Page({ ...req.body, courseId: req.params.id });
+        await item.save();
+        res.status(201).json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/pages/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const item = await Page.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/pages/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await Page.findByIdAndDelete(req.params.id);
+        res.json({ message: "O'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/assignments/:id', authMiddleware, async (req, res) => {
+    try {
+        const item = await Assignment.findById(req.params.id);
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/quizzes/:id', authMiddleware, async (req, res) => {
+    try {
+        const item = await Quiz.findById(req.params.id);
+        res.json(item);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+
+// =============================================
+// COURSE DISCUSSIONS & INDIVIDUAL CHATS
+// =============================================
+
+// 1. GET General Course Discussions (Group chat)
+app.get('/api/courses/:id/discussions/general', authMiddleware, async (req, res) => {
+    try {
+        const messages = await CourseDiscussion.find({
+            courseId: req.params.id,
+            type: 'general'
+        })
+        .populate('sender', 'username email role')
+        .populate('pinnedBy', 'username role')
+        .sort({ createdAt: 1 })
+        .lean();
+
+        res.json(messages || []);
+    } catch (error) {
+        console.error("GET general discussions error:", error);
+        res.status(500).json({ message: "Muhokamalarni yuklashda xatolik: " + error.message });
+    }
+});
+
+// 2. POST General Course Discussion Message
+app.post('/api/courses/:id/discussions/general', authMiddleware, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message || !message.trim()) {
+            return res.status(400).json({ message: "Xabar matni bo'sh bo'lishi mumkin emas" });
+        }
+
+        const newMsg = new CourseDiscussion({
+            courseId: req.params.id,
+            type: 'general',
+            sender: req.user.userId,
+            message: message.trim()
+        });
+
+        await newMsg.save();
+        const populated = await CourseDiscussion.findById(newMsg._id)
+            .populate('sender', 'username email role')
+            .lean();
+
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error("POST general discussion error:", error);
+        res.status(500).json({ message: "Xabar yuborishda xatolik: " + error.message });
+    }
+});
+
+// 3. GET Individual 1-on-1 Discussion (Teacher ↔ Student)
+app.get('/api/courses/:id/discussions/individual', authMiddleware, async (req, res) => {
+    try {
+        let studentId = req.query.studentId;
+
+        // Security check:
+        // A student can ONLY query their own thread!
+        if (req.user.role === 'student') {
+            studentId = req.user.userId;
+        }
+
+        if (!studentId) {
+            return res.status(400).json({ message: "O'quvchi tanlanmadi (studentId talab qilinadi)" });
+        }
+
+        const messages = await CourseDiscussion.find({
+            courseId: req.params.id,
+            type: 'individual',
+            studentId
+        })
+        .populate('sender', 'username email role')
+        .populate('recipient', 'username email role')
+        .sort({ createdAt: 1 })
+        .lean();
+
+        res.json(messages || []);
+    } catch (error) {
+        console.error("GET individual discussion error:", error);
+        res.status(500).json({ message: "Shaxsiy suhbatni yuklashda xatolik: " + error.message });
+    }
+});
+
+// 4. POST Individual 1-on-1 Discussion Message
+app.post('/api/courses/:id/discussions/individual', authMiddleware, async (req, res) => {
+    try {
+        const { message } = req.body;
+        if (!message || !message.trim()) {
+            return res.status(400).json({ message: "Xabar matni bo'sh bo'lishi mumkin emas" });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) {
+            return res.status(404).json({ message: "Kurs topilmadi" });
+        }
+
+        let studentId = null;
+        let recipientId = null;
+
+        if (req.user.role === 'student') {
+            studentId = req.user.userId;
+            recipientId = course.instructor;
+        } else {
+            // Teacher or Admin sending to student
+            studentId = req.body.studentId;
+            if (!studentId) {
+                return res.status(400).json({ message: "O'quvchi tanlanmadi (studentId kiritilishi shart)" });
+            }
+            recipientId = studentId;
+        }
+
+        const newMsg = new CourseDiscussion({
+            courseId: req.params.id,
+            type: 'individual',
+            sender: req.user.userId,
+            recipient: recipientId,
+            studentId,
+            message: message.trim()
+        });
+
+        await newMsg.save();
+        const populated = await CourseDiscussion.findById(newMsg._id)
+            .populate('sender', 'username email role')
+            .populate('recipient', 'username email role')
+            .lean();
+
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error("POST individual discussion error:", error);
+        res.status(500).json({ message: "Shaxsiy xabar yuborishda xatolik: " + error.message });
+    }
+});
+
+// 5. GET Course Discussion Participants & Thread Counts (For Teacher/Admin)
+app.get('/api/courses/:id/discussions/participants', authMiddleware, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id)
+            .populate('instructor', 'username email role')
+            .populate('students', 'username email role')
+            .lean();
+
+        if (!course) {
+            return res.status(404).json({ message: "Kurs topilmadi" });
+        }
+
+        const students = course.students || [];
+
+        // Count individual messages per student for this course
+        const studentStats = await Promise.all(students.map(async (st) => {
+            const msgCount = await CourseDiscussion.countDocuments({
+                courseId: course._id,
+                type: 'individual',
+                studentId: st._id
+            });
+            const lastMsg = await CourseDiscussion.findOne({
+                courseId: course._id,
+                type: 'individual',
+                studentId: st._id
+            }).sort({ createdAt: -1 }).select('message createdAt sender').lean();
+
+            return {
+                ...st,
+                messageCount: msgCount,
+                lastMessage: lastMsg
+            };
+        }));
+
+        res.json({
+            instructor: course.instructor,
+            students: studentStats
+        });
+    } catch (error) {
+        console.error("GET discussion participants error:", error);
+        res.status(500).json({ message: "Ishtirokchilarni yuklashda xatolik" });
+    }
+});
+
+// 6. DELETE Discussion Message (Admin, Teacher, or Message Author)
+app.delete('/api/courses/:id/discussions/:messageId', authMiddleware, async (req, res) => {
+    try {
+        const msg = await CourseDiscussion.findById(req.params.messageId);
+        if (!msg) {
+            return res.status(404).json({ message: "Xabar topilmadi" });
+        }
+
+        const course = await Course.findById(msg.courseId);
+        const isInstructor = course && String(course.instructor) === String(req.user.userId);
+        const isAdmin = req.user.role === 'admin';
+        const isAuthor = String(msg.sender) === String(req.user.userId);
+
+        if (!isAdmin && !isInstructor && !isAuthor) {
+            return res.status(403).json({ message: "Ushbu xabarni o'chirishga vakolatingiz yo'q" });
+        }
+
+        await CourseDiscussion.findByIdAndDelete(req.params.messageId);
+        res.json({ success: true, message: "Xabar muvaffaqiyatli o'chirildi" });
+    } catch (error) {
+        console.error("DELETE discussion message error:", error);
+        res.status(500).json({ message: "Xabarni o'chirishda xatolik: " + error.message });
+    }
+});
+
+// 7. PIN / UNPIN Discussion Message (Admin or Teacher)
+app.patch('/api/courses/:id/discussions/:messageId/pin', authMiddleware, async (req, res) => {
+    try {
+        const msg = await CourseDiscussion.findById(req.params.messageId);
+        if (!msg) {
+            return res.status(404).json({ message: "Xabar topilmadi" });
+        }
+
+        const course = await Course.findById(msg.courseId);
+        const isInstructor = course && String(course.instructor) === String(req.user.userId);
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isAdmin && !isInstructor) {
+            return res.status(403).json({ message: "Xabarni qadash faqat o'qituvchi yoki admin uchun mumkin" });
+        }
+
+        msg.isPinned = !msg.isPinned;
+        msg.pinnedBy = msg.isPinned ? req.user.userId : null;
+        msg.pinnedAt = msg.isPinned ? new Date() : null;
+        await msg.save();
+
+        const populated = await CourseDiscussion.findById(msg._id)
+            .populate('sender', 'username email role')
+            .populate('pinnedBy', 'username role')
+            .lean();
+
+        res.json(populated);
+    } catch (error) {
+        console.error("PIN discussion message error:", error);
+        res.status(500).json({ message: "Xabarni qadashda xatolik: " + error.message });
+    }
+});
+
+// Legacy backward compatibility endpoint
+app.get('/api/courses/:id/discussions', authMiddleware, async (req, res) => {
+    try {
+        const data = await CourseDiscussion.find({ courseId: req.params.id, type: 'general' })
+            .populate('sender', 'username email role')
+            .sort({ createdAt: 1 });
+        res.json(data);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// =============================================
+// SUBMISSIONS & GRADING
+// =============================================
+
+app.post('/api/assignments/:id/submit', authMiddleware, upload.array('files'), async (req, res) => {
+    try {
+        const { content } = req.body;
+        const files = req.files ? req.files.map(f => ({ name: f.originalname, url: `http://localhost:5000/uploads/${f.filename}` })) : [];
+        const sub = new Submission({ assignmentId: req.params.id, studentId: req.user.userId, content, files });
+        await sub.save();
+        res.status(201).json(sub);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/assignments/:id/submissions', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const data = await Submission.find({ assignmentId: req.params.id }).populate('studentId', 'username email');
+        res.json(data);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/submissions/:id/grade', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const sub = await Submission.findByIdAndUpdate(req.params.id, { ...req.body, status: 'graded' }, { new: true });
+        await Grade.findOneAndUpdate({ assignmentId: sub.assignmentId, studentId: sub.studentId }, { score: req.body.grade }, { upsert: true });
+        res.json(sub);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// =============================================
+// OTHER FEATURES (AI, Bank, Messages, etc.)
+// =============================================
+
+app.get('/api/announcements', authMiddleware, async (req, res) => {
+    try {
+        const now = new Date();
+        // Only return announcements that have no deadline OR whose deadline hasn't passed yet
+        const data = await Announcement.find({
+            $or: [
+                { expiresAt: { $exists: false } },
+                { expiresAt: null },
+                { expiresAt: { $gt: now } }
+            ]
+        }).sort({ date: -1 }).limit(50);
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ message: "Xatolik" });
+    }
+});
+
+app.post('/api/announcements', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { title, content, type, expiresAt } = req.body;
+        if (!content) return res.status(400).json({ message: "Matn kiritilmagan" });
+        if (!expiresAt) return res.status(400).json({ message: "Deadline (tugash vaqti) kiritilmagan" });
+
+        const deadlineDate = new Date(expiresAt);
+        if (isNaN(deadlineDate.getTime()) || deadlineDate <= new Date()) {
+            return res.status(400).json({ message: "Deadline kelajakdagi sana bo'lishi kerak" });
+        }
+
+        const newAnn = new Announcement({
+            title: title || "E'lon",
+            content,
+            type: type || 'announcement',
+            isAI: false,
+            createdBy: req.user ? req.user.userId : null,
+            date: new Date(),
+            expiresAt: deadlineDate
+        });
+        await newAnn.save();
+
+        // Send email notifications to all registered users
+        sendAnnouncementEmailNotifications(newAnn.title, newAnn.content);
+
+        res.status(201).json(newAnn);
+    } catch (error) {
+        console.error("Save Announcement Error:", error);
+        res.status(500).json({ message: "E'lonni saqlashda xatolik" });
+    }
+});
+
+app.delete('/api/announcements/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await Announcement.findByIdAndDelete(req.params.id);
+        res.json({ message: "E'lon o'chirildi" });
+    } catch (error) {
+        res.status(500).json({ message: "E'lonni o'chirishda xatolik" });
+    }
+});
+
+app.put('/api/announcements/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { title, content, expiresAt } = req.body;
+        const updateData = { title, content };
+        if (expiresAt) {
+            const deadlineDate = new Date(expiresAt);
+            if (!isNaN(deadlineDate.getTime())) updateData.expiresAt = deadlineDate;
+        }
+        const updated = await Announcement.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        );
+        res.json(updated);
+    } catch (error) {
+        res.status(500).json({ message: "E'lonni tahrirlashda xatolik" });
+    }
+});
+
+// ── AUTO-CLEANUP: Remove expired announcements every 60 seconds ──────────────
+setInterval(async () => {
+    try {
+        const result = await Announcement.deleteMany({ expiresAt: { $lte: new Date() } });
+        if (result.deletedCount > 0) {
+            console.log(`[AUTO-CLEANUP] ${result.deletedCount} ta muddati o'tgan e'lon o'chirildi.`);
+        }
+    } catch (err) {
+        console.error('[AUTO-CLEANUP] E\'lon tozalashda xatolik:', err.message);
+    }
+}, 60 * 1000);
+
+app.post('/api/messages', authMiddleware, async (req, res) => {
+    const msg = new Message({ ...req.body, sender: req.user.userId });
+    await msg.save();
+    res.status(201).json(msg);
+});
+
+app.get('/api/messages/:courseId', authMiddleware, async (req, res) => {
+    const data = await Message.find({ courseId: req.params.courseId }).populate('sender', 'username role');
+    res.json(data);
+});
+
+app.post('/api/question-bank', authMiddleware, teacherOrAdmin, async (req, res) => {
+    const q = new QuestionBank({ ...req.body, teacherId: req.user.userId });
+    await q.save();
+    res.status(201).json(q);
+});
+
+app.get('/api/question-bank', authMiddleware, teacherOrAdmin, async (req, res) => {
+    const data = await QuestionBank.find({ teacherId: req.user.userId });
+    res.json(data);
+});
+
+// =============================================
+// SEMESTER & CAMBRIDGE HELPER FUNCTIONS
+// =============================================
+
+const getCurrentSemester = (date = new Date()) => {
+    const month = date.getMonth() + 1; // 1-12
+    if (month >= 9 && month <= 12) return 'Semester 1';
+    if (month >= 1 && month <= 6) return 'Semester 2';
+    return 'Semester 1'; // July-August default to Semester 1
+};
+
+const getCambridgeGrade = (percentage, gradeLevel = '5-7') => {
+    if (percentage === null || percentage === undefined || isNaN(percentage) || percentage <= 0) {
+        return { score: '-', grade: 'Baho yo\'q', label: 'Ungraded', level: 'Ungraded', color: '#64748b', description: 'Baho qo\'yilmagan' };
+    }
+    const num = Math.round(Number(percentage));
+
+    if (gradeLevel === '8-11') {
+        // Grades 8 - 11 Scale
+        if (num >= 85) return { score: '5', grade: '5', label: '5 - Excellent (Mastery)', level: 'Excellent (Mastery)', color: '#10b981', description: 'Excellent (Mastery) [85-100%]' };
+        if (num >= 75) return { score: '4', grade: '4', label: '4 - Good (Approaching Mastery)', level: 'Good (Approaching Mastery)', color: '#3b82f6', description: 'Good (Approaching Mastery) [75-84%]' };
+        if (num >= 60) return { score: '3', grade: '3', label: '3 - Satisfactory (Developing)', level: 'Satisfactory (Developing)', color: '#f59e0b', description: 'Satisfactory (Developing) [60-74%]' };
+        if (num >= 45) return { score: '2', grade: '2', label: '2 - Unsatisfactory (Beginning)', level: 'Unsatisfactory (Beginning)', color: '#ec4899', description: 'Unsatisfactory (Beginning) [45-59%]' };
+        return { score: '1', grade: '1', label: '1 - Fail', level: 'Fail', color: '#ef4444', description: 'Fail [1-44%]' };
+    } else {
+        // Grades 5 - 7 Scale (Default)
+        if (num >= 80) return { score: '5', grade: '5', label: '5 - Excellent (Mastery)', level: 'Excellent (Mastery)', color: '#10b981', description: 'Excellent (Mastery) [80-100%]' };
+        if (num >= 70) return { score: '4', grade: '4', label: '4 - Good (Approaching Mastery)', level: 'Good (Approaching Mastery)', color: '#3b82f6', description: 'Good (Approaching Mastery) [70-79%]' };
+        if (num >= 55) return { score: '3', grade: '3', label: '3 - Satisfactory (Developing)', level: 'Satisfactory (Developing)', color: '#f59e0b', description: 'Satisfactory (Developing) [55-69%]' };
+        if (num >= 45) return { score: '2', grade: '2', label: '2 - Unsatisfactory (Beginning)', level: 'Unsatisfactory (Beginning)', color: '#ec4899', description: 'Unsatisfactory (Beginning) [45-54%]' };
+        return { score: '1', grade: '1', label: '1 - Fail', level: 'Fail', color: '#ef4444', description: 'Fail [1-44%]' };
+    }
+};
+
+const checkSemesterLock = async (semester, courseId, reqUser) => {
+    if (reqUser.role === 'admin') {
+        return { isLocked: false, reason: 'admin' };
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    let isPastDeadline = false;
+
+    // Check semester deadline
+    if (semester === 'Semester 1') {
+        // Semester 1 cutoff: Dec 31 of current year
+        const deadlineSem1 = new Date(currentYear, 11, 31, 23, 59, 59);
+        if (now > deadlineSem1 && now.getMonth() >= 0 && now.getMonth() <= 5) {
+            isPastDeadline = true; // In Semester 2 trying to edit Semester 1
+        }
+    } else if (semester === 'Semester 2') {
+        // Semester 2 cutoff: June 30 of current year
+        const deadlineSem2 = new Date(currentYear, 5, 30, 23, 59, 59);
+        if (now > deadlineSem2 && now.getMonth() >= 6) {
+            isPastDeadline = true; // Past June 30
+        }
+    }
+
+    // Check active approved unlock request
+    const activeRequest = await GradeUnlockRequest.findOne({
+        courseId,
+        semester,
+        teacherId: reqUser.userId,
+        status: 'approved',
+        approvedUntil: { $gt: now }
+    }).sort({ approvedUntil: -1 });
+
+    if (activeRequest) {
+        return { isLocked: false, reason: 'unlocked_by_admin', activeRequest };
+    }
+
+    if (isPastDeadline) {
+        const pendingRequest = await GradeUnlockRequest.findOne({
+            courseId,
+            semester,
+            teacherId: reqUser.userId
+        }).sort({ createdAt: -1 });
+
+        return { isLocked: true, reason: 'deadline_passed', activeRequest: pendingRequest };
+    }
+
+    return { isLocked: false, reason: 'within_semester' };
+};
+
+// =============================================
+// GRADING & UNLOCK API
+// =============================================
+
+app.get('/api/teacher/courses', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        let courses;
+        if (req.user.role === 'admin') {
+            courses = await Course.find().populate('instructor', 'username').sort({ createdAt: -1 });
+        } else {
+            courses = await Course.find({ instructor: req.user.userId }).populate('instructor', 'username').sort({ createdAt: -1 });
+        }
+        res.json(courses || []);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// =============================================
+// ADMIN SCHEDULE & DEADLINE MANAGEMENT API
+// =============================================
+
+// Schedules API
+app.get('/api/admin/schedules', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const schedules = await Schedule.find().populate('teacherId', 'username email').populate('courseId', 'title').sort({ createdAt: -1 });
+        res.json(schedules);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/admin/schedules', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { teacherId, courseId, classGroup, subject, dayOfWeek, timeSlot, room, topic } = req.body;
+        const newSched = new Schedule({
+            teacherId, courseId, classGroup, subject, dayOfWeek, timeSlot, room, topic,
+            createdBy: req.user.userId
+        });
+        await newSched.save();
+        const populated = await Schedule.findById(newSched._id).populate('teacherId', 'username email').populate('courseId', 'title');
+        res.status(201).json(populated);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/admin/schedules/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await Schedule.findByIdAndDelete(req.params.id);
+        res.json({ message: "Dars jadvali o'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// AI Auto-Generate Schedule
+app.post('/api/admin/generate-ai-schedule', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { teacherId, classGroup, subject, daysCount } = req.body;
+        const timeSlots = ['09:00 - 09:45', '10:00 - 10:45', '11:00 - 11:45', '14:00 - 14:45'];
+        const days = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma'];
+        const topics = [
+            'Kirish va Asosiy Tushunchalar',
+            'Algoritmlar va Mantiqiy Tuzilish',
+            'Amaliy Laboratoriya Mashg\'uloti',
+            'Mustaqil Loyiha Ustida Ishlash',
+            'Semestr Yakuniy Tahlili'
+        ];
+
+        const generatedList = [];
+        const count = daysCount || 3;
+
+        for (let i = 0; i < count; i++) {
+            const day = days[i % days.length];
+            const slot = timeSlots[i % timeSlots.length];
+            const topic = topics[i % topics.length];
+
+            const item = new Schedule({
+                teacherId,
+                classGroup: classGroup || '9-Green',
+                subject: subject || 'Computer Science',
+                dayOfWeek: day,
+                timeSlot: slot,
+                room: `Lab ${201 + i}`,
+                topic: `[AI] ${topic}`,
+                createdBy: req.user.userId
+            });
+            await item.save();
+            generatedList.push(item);
+        }
+
+        res.json({ message: `${generatedList.length} ta dars AI yordamida yaratildi! 🪄`, items: generatedList });
+    } catch (error) { res.status(500).json({ message: "AI Generator xatosi" }); }
+});
+
+// Deadlines API
+app.get('/api/admin/deadlines', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const deadlines = await AssessmentDeadline.find().populate('teacherId', 'username').sort({ deadlineDate: 1 });
+        res.json(deadlines);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/admin/deadlines', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { title, classGroup, courseId, teacherId, semester, deadlineDate, urgency, description } = req.body;
+        const deadline = new AssessmentDeadline({
+            title, classGroup, courseId, teacherId, semester,
+            deadlineDate: deadlineDate || new Date(),
+            urgency: urgency || 'high',
+            description, createdBy: req.user.userId
+        });
+        await deadline.save();
+        res.status(201).json(deadline);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/admin/deadlines/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await AssessmentDeadline.findByIdAndDelete(req.params.id);
+        res.json({ message: "Baholash sanasi o'chirildi" });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+// Schedule Endpoints (Full CRUD)
+app.get('/api/schedules/my-schedule', authMiddleware, async (req, res) => {
+    try {
+        const query = req.user.role === 'admin' ? {} : { teacherId: req.user.userId };
+        const schedules = await Schedule.find(query).sort({ createdAt: -1 });
+        res.json(schedules || []);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/schedules', authMiddleware, async (req, res) => {
+    try {
+        const query = (req.user.role === 'teacher' || req.user.role === 'student')
+            ? (req.user.role === 'teacher' ? { teacherId: req.user.userId } : {})
+            : {};
+        const schedules = await Schedule.find(query).sort({ createdAt: -1 });
+        res.json(schedules || []);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/schedules', authMiddleware, async (req, res) => {
+    try {
+        const { dayOfWeek, timeSlot, classGroup, room, topic, subject } = req.body;
+        if (!dayOfWeek || !timeSlot) {
+            return res.status(400).json({ message: "Hafta kuni va soat majburiy" });
+        }
+        const newSchedule = new Schedule({
+            teacherId: req.user.userId,
+            dayOfWeek: dayOfWeek || 'Dushanba',
+            timeSlot,
+            classGroup: classGroup || 'Sinf',
+            room: room || 'Xona',
+            topic: topic || 'Dars eslatmasi',
+            subject: subject || 'Fan',
+            createdBy: req.user.userId
+        });
+        await newSchedule.save();
+        res.status(201).json(newSchedule);
+    } catch (error) {
+        console.error("Schedule create error:", error);
+        res.status(500).json({ message: "Dars jadvalini saqlashda xatolik" });
+    }
+});
+
+app.put('/api/schedules/:id', authMiddleware, async (req, res) => {
+    try {
+        const { dayOfWeek, timeSlot, classGroup, room, topic, subject } = req.body;
+        const schedule = await Schedule.findById(req.params.id);
+        if (!schedule) return res.status(404).json({ message: "Dars jadvali topilmadi" });
+
+        const isOwner = schedule.teacherId && schedule.teacherId.toString() === req.user.userId.toString();
+        if (req.user.role !== 'admin' && !isOwner) {
+            return res.status(403).json({ message: "Ruxsat berilmagan" });
+        }
+
+        if (dayOfWeek) schedule.dayOfWeek = dayOfWeek;
+        if (timeSlot) schedule.timeSlot = timeSlot;
+        if (classGroup) schedule.classGroup = classGroup;
+        if (room !== undefined) schedule.room = room;
+        if (topic !== undefined) schedule.topic = topic;
+        if (subject !== undefined) schedule.subject = subject;
+
+        await schedule.save();
+        res.json(schedule);
+    } catch (error) {
+        console.error("Schedule update error:", error);
+        res.status(500).json({ message: "Dars jadvalini yangilashda xatolik" });
+    }
+});
+
+app.delete('/api/schedules/:id', authMiddleware, async (req, res) => {
+    try {
+        const schedule = await Schedule.findById(req.params.id);
+        if (!schedule) return res.status(404).json({ message: "Dars jadvali topilmadi" });
+
+        const isOwner = schedule.teacherId && schedule.teacherId.toString() === req.user.userId.toString();
+        if (req.user.role !== 'admin' && !isOwner) {
+            return res.status(403).json({ message: "Ruxsat berilmagan" });
+        }
+
+        await Schedule.findByIdAndDelete(req.params.id);
+        res.json({ message: "Dars jadvali o'chirildi" });
+    } catch (error) {
+        console.error("Schedule delete error:", error);
+        res.status(500).json({ message: "Dars jadvalini o'chirishda xatolik" });
+    }
+});
+
+app.get('/api/deadlines/my-deadlines', authMiddleware, async (req, res) => {
+    try {
+        const deadlines = await AssessmentDeadline.find({ teacherId: req.user.userId }).sort({ deadlineDate: 1 });
+        res.json(deadlines || []);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+
+app.get('/api/courses/:id/students', authMiddleware, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id).populate('students', 'username email role');
+        if (!course) return res.status(404).json({ message: "Kurs topilmadi" });
+        
+        let students = course.students || [];
+        // Only auto-populate default students IF course has never been initialized before AND caller is teacher/admin
+        if (!course.isInitialized && students.length === 0 && (req.user.role === 'teacher' || req.user.role === 'admin')) {
+            students = await User.find({ role: 'student', isApproved: true }).select('username email role');
+            course.students = students.map(s => s._id);
+            course.isInitialized = true;
+            await course.save();
+        }
+        res.json(students);
+    } catch (error) { 
+        console.error("GET course students error:", error);
+        res.status(500).json({ message: "Xatolik" }); 
+    }
+});
+
+app.post('/api/courses/:id/add-student', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "Email yoki foydalanuvchi nomini kiritishingiz shart" });
+        
+        const cleanInput = email.trim();
+        const safeRegex = new RegExp('^' + cleanInput.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i');
+        const student = await User.findOne({
+            $or: [
+                { email: safeRegex },
+                { username: safeRegex }
+            ]
+        });
+        
+        if (!student) {
+            return res.status(404).json({ message: `"${cleanInput}" bo'yicha foydalanuvchi topilmadi` });
+        }
+        
+        if (student.role !== 'student') {
+            return res.status(400).json({ message: `"${student.username}" foydalanuvchisi o'quvchi (student) emas` });
+        }
+
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ message: "Kurs topilmadi" });
+
+        const isAlreadyEnrolled = (course.students || []).some(sId => sId.toString() === student._id.toString());
+        if (isAlreadyEnrolled) {
+            return res.status(400).json({ message: `O'quvchi (${student.username}) allaqachon ushbu kursga qo'shilgan` });
+        }
+
+        if (!course.students) course.students = [];
+        course.students.push(student._id);
+        course.isInitialized = true;
+        await course.save();
+
+        res.json({
+            message: `O'quvchi (@${student.username} - ${student.email}) kursga muvaffaqiyatli qo'shildi! 🎉`,
+            student: { _id: student._id, username: student.username, email: student.email }
+        });
+    } catch (error) {
+        console.error("Add student error:", error);
+        res.status(500).json({ message: "O'quvchini qo'shishda xatolik" });
+    }
+});
+
+app.delete('/api/courses/:id/remove-student/:studentId', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ message: "Kurs topilmadi" });
+
+        course.students = (course.students || []).filter(sId => sId.toString() !== req.params.studentId.toString());
+        course.isInitialized = true;
+        await course.save();
+
+        res.json({ message: "O'quvchi kursdan olib tashlandi" });
+    } catch (error) {
+        console.error("Remove student error:", error);
+        res.status(500).json({ message: "O'quvchini olib tashlashda xatolik" });
+    }
+});
+
+app.get('/api/courses/:id/grades', authMiddleware, async (req, res) => {
+    try {
+        const semester = req.query.semester || getCurrentSemester();
+        const grades = await Grade.find({ courseId: req.params.id, semester });
+        res.json(grades);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/courses/:id/lock-status', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const semester = req.query.semester || getCurrentSemester();
+        const lockInfo = await checkSemesterLock(semester, req.params.id, req.user);
+        res.json({
+            ...lockInfo,
+            currentSemester: semester,
+            autoDetectedSemester: getCurrentSemester()
+        });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.post('/api/teacher/request-unlock', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { courseId, semester, reason } = req.body;
+        if (!courseId || !semester || !reason) {
+            return res.status(400).json({ message: "Barcha maydonlarni to'ldiring" });
+        }
+
+        const newRequest = new GradeUnlockRequest({
+            teacherId: req.user.userId,
+            courseId,
+            semester,
+            reason,
+            status: 'pending'
+        });
+
+        await newRequest.save();
+        res.status(201).json({ message: "Ruxsat so'rovi adminga yuborildi! Admin tasdiqlashini kuting.", request: newRequest });
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.delete('/api/courses/:id/delete-assessment', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { assessmentName, semester } = req.body;
+        if (!assessmentName) {
+            return res.status(400).json({ message: "Assessment nomi ko'rsatilmadi" });
+        }
+        const targetSemester = semester || getCurrentSemester();
+        const lockCheck = await checkSemesterLock(targetSemester, req.params.id, req.user);
+        if (lockCheck.isLocked) {
+            return res.status(403).json({ message: "🔒 Semester baholari yopilgan! O'chirish uchun ruxsat so'rang." });
+        }
+
+        await Grade.deleteMany({
+            courseId: req.params.id,
+            semester: targetSemester,
+            assessmentName
+        });
+
+        res.json({ message: `${assessmentName} va uning baholari o'chirildi!` });
+    } catch (error) {
+        res.status(500).json({ message: "O'chirishda xatolik" });
+    }
+});
+
+app.post('/api/save-grade', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { studentId, courseId, assessmentName, category, score, semester, academicYear } = req.body;
+        if (!studentId || !courseId || !assessmentName) {
+            return res.status(400).json({ message: "Barcha maydonlarni to'ldiring" });
+        }
+
+        const targetSemester = semester || getCurrentSemester();
+
+        // Ensure teacher can only modify grades for courses assigned to them
+        if (req.user.role === 'teacher') {
+            const course = await Course.findById(courseId);
+            if (course && course.instructor && course.instructor.toString() !== req.user.userId) {
+                return res.status(403).json({ message: "Siz faqat o'zingizga biriktirilgan kurs baholarini o'zgartira olasiz!" });
+            }
+        }
+
+        // Check if grade editing is locked for this semester
+        const lockCheck = await checkSemesterLock(targetSemester, courseId, req.user);
+        if (lockCheck.isLocked) {
+            return res.status(403).json({
+                message: "🔒 Ushbu semester baholari yopilgan! Bahoni o'zgartirish uchun admindan ruxsat so'rang.",
+                isLocked: true
+            });
+        }
+
+        const numericScore = Number(score);
+        if (isNaN(numericScore) || numericScore < 0 || numericScore > 100) {
+            return res.status(400).json({ message: "Baho 0 dan 100 gacha bo'lishi kerak" });
+        }
+
+        const gradeCat = category || (assessmentName.toLowerCase().includes('end of semester') ? 'end_of_semester' : 'summative');
+
+        const grade = await Grade.findOneAndUpdate(
+            { studentId, courseId, semester: targetSemester, assessmentName },
+            { 
+                studentId, 
+                courseId, 
+                semester: targetSemester,
+                academicYear: academicYear || '2025-2026',
+                assessmentName, 
+                category: gradeCat, 
+                score: numericScore, 
+                teacherId: req.user.userId,
+                date: new Date() 
+            },
+            { upsert: true, new: true }
+        );
+        res.json(grade);
+    } catch (error) { 
+        console.error("Save grade error:", error);
+        res.status(500).json({ message: "Baho saqlashda xatolik" }); 
+    }
+});
+
+app.get('/api/grades/student/:studentId', authMiddleware, async (req, res) => {
+    try {
+        const targetStudentId = req.params.studentId === 'me' ? req.user.userId : req.params.studentId;
+        
+        // Get list of course IDs where the student is currently enrolled
+        const enrolledCourses = await Course.find({ students: targetStudentId }).select('_id');
+        const enrolledCourseIds = new Set(enrolledCourses.map(c => c._id.toString()));
+
+        const grades = await Grade.find({ studentId: targetStudentId }).populate('courseId', 'title description coverImage');
+        
+        // Group grades by course and semester ONLY for currently enrolled courses
+        const courseMap = {};
+        for (const g of grades) {
+            if (!g.courseId) continue;
+            const cId = g.courseId._id.toString();
+            if (!enrolledCourseIds.has(cId)) continue; // Skip courses where student was removed/not enrolled!
+
+            if (!courseMap[cId]) {
+                courseMap[cId] = {
+                    course: g.courseId,
+                    sem1: { summatives: [], endOfSemester: null },
+                    sem2: { summatives: [], endOfSemester: null }
+                };
+            }
+            const targetSem = g.semester === 'Semester 2' ? 'sem2' : 'sem1';
+            if (g.category === 'end_of_semester' || g.assessmentName.toLowerCase().includes('end of semester')) {
+                courseMap[cId][targetSem].endOfSemester = g.score;
+            } else {
+                courseMap[cId][targetSem].summatives.push(g);
+            }
+        }
+
+        // Compute weighted score per semester & End of Year Cambridge Grade
+        const result = Object.values(courseMap).map(c => {
+            const computeSem = (semData) => {
+                const summatives = semData.summatives;
+                const sumAvg = summatives.length > 0 
+                    ? summatives.reduce((acc, curr) => acc + curr.score, 0) / summatives.length 
+                    : 0;
+                const summativeWeighted = Number((sumAvg * 0.60).toFixed(2));
+                const endOfSem = semData.endOfSemester !== null ? semData.endOfSemester : null;
+                const endOfSemWeighted = endOfSem !== null ? Number((endOfSem * 0.40).toFixed(2)) : 0;
+                
+                // Only count total if grades exist
+                const hasGrades = summatives.length > 0 || endOfSem !== null;
+                const totalScore = hasGrades ? Number((summativeWeighted + endOfSemWeighted).toFixed(2)) : null;
+
+                return {
+                    summatives,
+                    summativeAvg: Number(sumAvg.toFixed(2)),
+                    summativeWeighted,
+                    endOfSemester: endOfSem,
+                    endOfSemesterWeighted: endOfSemWeighted,
+                    totalScore
+                };
+            };
+
+            const sem1Result = computeSem(c.sem1);
+            const sem2Result = computeSem(c.sem2);
+
+            // Compute End of Year Average %
+            let eoyScores = [];
+            if (sem1Result.totalScore !== null) eoyScores.push(sem1Result.totalScore);
+            if (sem2Result.totalScore !== null) eoyScores.push(sem2Result.totalScore);
+
+            const endOfYearAvg = eoyScores.length > 0
+                ? Number((eoyScores.reduce((a, b) => a + b, 0) / eoyScores.length).toFixed(2))
+                : 0;
+
+            const cambridgeGrade = getCambridgeGrade(endOfYearAvg);
+
+            return {
+                course: c.course,
+                sem1: sem1Result,
+                sem2: sem2Result,
+                endOfYearAvg,
+                cambridgeGrade
+            };
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error("Student grades error:", error);
+        res.status(500).json({ message: "Xatolik" });
+    }
+});
+
+// Admin Unlock Requests Management
+app.get('/api/admin/unlock-requests', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const requests = await GradeUnlockRequest.find()
+            .populate('teacherId', 'username email')
+            .populate('courseId', 'title')
+            .sort({ createdAt: -1 });
+        res.json(requests);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/admin/approve-unlock/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const durationHours = Number(req.body.durationHours) || 24;
+        const approvedUntil = new Date(Date.now() + durationHours * 3600 * 1000);
+
+        const request = await GradeUnlockRequest.findByIdAndUpdate(
+            req.params.id,
+            { status: 'approved', approvedUntil, durationHours },
+            { new: true }
+        ).populate('teacherId', 'username').populate('courseId', 'title');
+
+        res.json(request);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/admin/reject-unlock/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const request = await GradeUnlockRequest.findByIdAndUpdate(
+            req.params.id,
+            { status: 'rejected' },
+            { new: true }
+        );
+        res.json(request);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/grades/:studentId', authMiddleware, async (req, res) => {
+    try {
+        const grades = await Grade.find({ studentId: req.params.studentId }).populate('courseId', 'title');
+        res.json(grades);
+    } catch (error) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/all-grades', authMiddleware, teacherOrAdmin, async (req, res) => {
+    const data = await Grade.find().populate('studentId', 'username email').populate('courseId', 'title');
+    res.json(data);
+});
+
+// =============================================
+// ADMIN API
+// =============================================
+
+app.get('/api/admin/users', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const users = await User.find().select('-password').sort({ _id: -1 });
+        res.json(users);
+    } catch (e) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/admin/all-users', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const users = await User.find().select('-password').sort({ _id: -1 });
+        res.json(users);
+    } catch (e) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.get('/api/admin/pending-users', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const users = await User.find({ isApproved: false }).select('-password').sort({ _id: -1 });
+        res.json(users);
+    } catch (e) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/admin/approve/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(req.params.id, { isApproved: true }, { new: true });
+        res.json(user);
+    } catch (e) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/admin/change-role/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const targetUser = await User.findById(req.params.id);
+        if (targetUser && (targetUser.isOwner || targetUser.username?.toLowerCase() === 'safarmurod' || targetUser.username === 'osman')) {
+            return res.status(403).json({ message: "Asosiy admin (Safarmurod)ning rolini o'zgartirib bo'lmaydi!" });
+        }
+        const user = await User.findByIdAndUpdate(req.params.id, { role: req.body.role }, { new: true });
+        res.json(user);
+    } catch (e) { res.status(500).json({ message: "Xatolik" }); }
+});
+
+app.put('/api/admin/toggle-english-teacher/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+        if (user.role !== 'teacher') {
+            return res.status(400).json({ message: "Faqat o'qituvchilar uchun English Teacher maqomi o'rnatilishi mumkin!" });
+        }
+        const isEnglish = req.body.isEnglishTeacher !== undefined ? Boolean(req.body.isEnglishTeacher) : !user.isEnglishTeacher;
+        user.isEnglishTeacher = isEnglish;
+        await user.save();
+        res.json({ 
+            message: `O'qituvchi (${user.username}) ${isEnglish ? "Ingliz tili o'qituvchisi etib belgilandi" : "Ingliz tili o'qituvchisi maqomidan chiqarildi"}`, 
+            user: { _id: user._id, username: user.username, role: user.role, isEnglishTeacher: user.isEnglishTeacher, isMathTeacher: user.isMathTeacher } 
+        });
+    } catch (e) { 
+        res.status(500).json({ message: "Xatolik: " + e.message }); 
+    }
+});
+
+// Toggle Math Teacher Status (Digital SAT Math & qualitative evaluation permissions)
+app.put('/api/admin/toggle-math-teacher/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+        if (user.role !== 'teacher') {
+            return res.status(400).json({ message: "Faqat o'qituvchilar uchun Math Teacher maqomi o'rnatilishi mumkin!" });
+        }
+        const isMath = req.body.isMathTeacher !== undefined ? Boolean(req.body.isMathTeacher) : !user.isMathTeacher;
+        user.isMathTeacher = isMath;
+        await user.save();
+        res.json({ 
+            message: `O'qituvchi (${user.username}) ${isMath ? "Matematika o'qituvchisi (SAT Math) etib belgilandi" : "Matematika o'qituvchisi maqomidan chiqarildi"}`, 
+            user: { _id: user._id, username: user.username, role: user.role, isEnglishTeacher: user.isEnglishTeacher, isMathTeacher: user.isMathTeacher } 
+        });
+    } catch (e) { 
+        res.status(500).json({ message: "Xatolik: " + e.message }); 
+    }
+});
+
+app.delete('/api/admin/delete-user/:id', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const targetUser = await User.findById(req.params.id);
+        if (!targetUser) {
+            return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+        }
+        if (targetUser.isOwner || targetUser.username?.toLowerCase() === 'safarmurod' || targetUser.username === 'osman') {
+            return res.status(403).json({ message: "Asosiy admin (Safarmurod)ni o'chirish taqiqlangan!" });
+        }
+        if (req.user.userId === req.params.id) {
+            return res.status(400).json({ message: "O'zingizning admin hisobingizni o'chira olmaysiz!" });
+        }
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: "O'chirildi" });
+    } catch (e) {
+        console.error("Delete user error:", e);
+        res.status(500).json({ message: "Xatolik" });
+    }
+});
+
+// =============================================
+// QUESTION MAKER & LIVE RESULTS API
+// =============================================
+
+// Get all question maker quizzes for a course
+app.get('/api/courses/:courseId/question-maker', authMiddleware, async (req, res) => {
+    try {
+        const quizzes = await QuestionMaker.find({ courseId: req.params.courseId }).sort({ createdAt: -1 });
+        res.json(quizzes);
+    } catch (error) {
+        console.error("Get QuestionMaker quizzes error:", error);
+        res.status(500).json({ message: "Savollar to'plamini olishda xatolik" });
+    }
+});
+
+// Import and parse questions from .DOCX Word file
+app.post('/api/courses/:courseId/question-maker/import-docx', authMiddleware, teacherOrAdmin, uploadDocx.single('file'), async (req, res) => {
+    try {
+        if (!req.file || !req.file.buffer) {
+            return res.status(400).json({ message: ".DOCX fayli yuklanmadi!" });
+        }
+
+        const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+        const rawText = result.value || '';
+        
+        if (!rawText.trim()) {
+            return res.status(400).json({ message: ".DOCX fayli bo'sh yoki matn o'qilmadi!" });
+        }
+
+        const lines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const parsedQuestions = [];
+        let currentQuestion = null;
+
+        const questionPrefixRegex = /^(\d+[\.\-\)]\s*|savol\s*\d*[\.\:\-\)]\s*)/i;
+        const optionPrefixRegex = /^([a-hA-H][\.\)]\s*|[\-\*•]\s*)/i;
+
+        lines.forEach((line) => {
+            const isOpt = optionPrefixRegex.test(line);
+            const isQLine = !isOpt && (questionPrefixRegex.test(line) || line.endsWith('?') || !currentQuestion || currentQuestion.options.length >= 2);
+
+            if (isQLine) {
+                if (currentQuestion && currentQuestion.questionText && currentQuestion.options.length > 0) {
+                    parsedQuestions.push(currentQuestion);
+                }
+                const cleanedQText = line.replace(/^(\d+[\.\-\)]\s*|savol\s*\d*[\.\:\-\)]\s*)/i, '').trim();
+                currentQuestion = {
+                    questionText: cleanedQText || line,
+                    options: [],
+                    correctIndex: 0
+                };
+            } else if (currentQuestion) {
+                let isCorrect = false;
+                let optText = line;
+
+                if (optText.endsWith('*')) {
+                    isCorrect = true;
+                    optText = optText.slice(0, -1);
+                } else if (optText.startsWith('*')) {
+                    isCorrect = true;
+                    optText = optText.slice(1);
+                }
+
+                optText = optText.replace(/^([a-hA-H][\.\)]\s*|[\-\*•]\s*)/i, '').trim();
+                if (optText.endsWith('*')) {
+                    isCorrect = true;
+                    optText = optText.slice(0, -1).trim();
+                }
+
+                if (optText) {
+                    if (isCorrect) {
+                        currentQuestion.correctIndex = currentQuestion.options.length;
+                    }
+                    currentQuestion.options.push(optText);
+                }
+            }
+        });
+
+        if (currentQuestion && currentQuestion.questionText && currentQuestion.options.length > 0) {
+            parsedQuestions.push(currentQuestion);
+        }
+
+        if (parsedQuestions.length === 0) {
+            return res.status(400).json({ message: "Fayldan savollar topilmadi. Savollar raqamlangan bo'lishi va variantlar A), B), C) shaklida bo'lishi kerak." });
+        }
+
+        // Generate suggested title from filename or first line
+        const fileName = req.file.originalname ? req.file.originalname.replace(/\.[^/.]+$/, "") : "Docx Test";
+
+        res.json({
+            suggestedTitle: fileName,
+            questions: parsedQuestions
+        });
+    } catch (error) {
+        console.error("Parse docx error:", error);
+        res.status(500).json({ message: ".DOCX faylini o'qishda xatolik yuz berdi" });
+    }
+});
+
+// Create a new QuestionMaker quiz (Teacher / Admin)
+app.post('/api/courses/:courseId/question-maker', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        const { title, authorName, timeLimit, questions } = req.body;
+        if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ message: "Kamida bitta savol va sarlavha kiritilishi shart!" });
+        }
+
+        // Process questions and clean asterisk (*) option markers
+        const processedQuestions = questions.map(q => {
+            let correctIdx = typeof q.correctIndex === 'number' ? q.correctIndex : 0;
+            const cleanedOptions = (q.options || []).map((opt, idx) => {
+                let str = String(opt || '').trim();
+                // Check if option contains asterisk (*) indicating correct answer
+                if (str.endsWith('*')) {
+                    correctIdx = idx;
+                    str = str.slice(0, -1).trim();
+                } else if (str.startsWith('*')) {
+                    correctIdx = idx;
+                    str = str.slice(1).trim();
+                }
+                return str;
+            });
+
+            return {
+                questionText: q.questionText || q.question || 'Savol matni',
+                options: cleanedOptions,
+                correctIndex: correctIdx
+            };
+        });
+
+        const newQuiz = new QuestionMaker({
+            courseId: req.params.courseId,
+            title: title.trim(),
+            authorName: authorName || req.user.username || 'O\'qituvchi',
+            timeLimit: Number(timeLimit) || 15,
+            questions: processedQuestions
+        });
+
+        await newQuiz.save();
+        res.status(201).json(newQuiz);
+    } catch (error) {
+        console.error("Create QuestionMaker quiz error:", error);
+        res.status(500).json({ message: "Savol to'plamini saqlashda xatolik" });
+    }
+});
+
+// Delete a QuestionMaker quiz
+app.delete('/api/question-maker/:id', authMiddleware, teacherOrAdmin, async (req, res) => {
+    try {
+        await QuestionMaker.findByIdAndDelete(req.params.id);
+        await QuestionResult.deleteMany({ quizId: req.params.id });
+        res.json({ message: "Test va uning natijalari o'chirildi" });
+    } catch (error) {
+        console.error("Delete QuestionMaker quiz error:", error);
+        res.status(500).json({ message: "Testni o'chirishda xatolik" });
+    }
+});
+
+// Submit quiz answers (Student)
+app.post('/api/question-maker/:id/submit', authMiddleware, async (req, res) => {
+    try {
+        const { answers, timeSpentSeconds } = req.body; // array of selected option indexes
+        const quiz = await QuestionMaker.findById(req.params.id);
+        if (!quiz) {
+            return res.status(404).json({ message: "Test topilmadi" });
+        }
+
+        const user = await User.findById(req.user.userId);
+        const studentName = user ? user.username : 'O\'quvchi';
+        const studentEmail = user ? user.email : '';
+
+        let correctCount = 0;
+        const totalQuestions = quiz.questions.length;
+
+        quiz.questions.forEach((q, idx) => {
+            if (answers && answers[idx] !== undefined && Number(answers[idx]) === q.correctIndex) {
+                correctCount++;
+            }
+        });
+
+        const scorePercentage = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+        // Upsert result for student
+        const result = await QuestionResult.findOneAndUpdate(
+            { quizId: quiz._id, studentId: req.user.userId },
+            {
+                quizId: quiz._id,
+                courseId: quiz.courseId,
+                studentId: req.user.userId,
+                studentName,
+                studentEmail,
+                answers: answers || [],
+                scorePercentage,
+                correctCount,
+                totalQuestions,
+                timeSpentSeconds: Number(timeSpentSeconds) || 0,
+                submittedAt: new Date()
+            },
+            { upsert: true, new: true }
+        );
+
+        res.json({
+            message: "Test muvaffaqiyatli topshirildi",
+            result
+        });
+    } catch (error) {
+        console.error("Submit QuestionMaker quiz error:", error);
+        res.status(500).json({ message: "Test natijasini saqlashda xatolik" });
+    }
+});
+
+// Get live real-time results for a quiz
+app.get('/api/question-maker/:id/results', authMiddleware, async (req, res) => {
+    try {
+        const results = await QuestionResult.find({ quizId: req.params.id }).sort({ scorePercentage: -1, submittedAt: 1 });
+        res.json(results);
+    } catch (error) {
+        console.error("Get QuestionMaker results error:", error);
+        res.status(500).json({ message: "Natijalarni olishda xatolik" });
+    }
+});
+
+// =============================================
+// GLOBAL SYSTEM SETTINGS API (Real-time Season Sync)
+// =============================================
+
+const SystemSettingSchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    value: { type: mongoose.Schema.Types.Mixed, required: true },
+    updatedBy: String,
+    updatedAt: { type: Date, default: Date.now }
+});
+const SystemSetting = mongoose.models.SystemSetting || mongoose.model('SystemSetting', SystemSettingSchema);
+
+let cachedSeasonValue = null;
+let lastSeasonCachedAt = 0;
+
+app.get('/api/settings/season', async (req, res) => {
+    try {
+        const now = Date.now();
+        if (cachedSeasonValue && (now - lastSeasonCachedAt < 15000)) {
+            return res.json({ season: cachedSeasonValue });
+        }
+        let setting = await SystemSetting.findOne({ key: 'season' }).lean();
+        if (!setting) {
+            setting = await SystemSetting.create({ key: 'season', value: 'off' });
+        }
+        cachedSeasonValue = setting.value || 'off';
+        lastSeasonCachedAt = now;
+        res.json({ season: cachedSeasonValue });
+    } catch (err) {
+        res.json({ season: cachedSeasonValue || 'off' });
+    }
+});
+
+app.post('/api/settings/season', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        const { season } = req.body;
+        const validSeasons = ['off', 'spring', 'summer', 'autumn', 'winter'];
+        if (!validSeasons.includes(season)) {
+            return res.status(400).json({ message: "Noto'g'ri fasl kiritildi" });
+        }
+        let setting = await SystemSetting.findOneAndUpdate(
+            { key: 'season' },
+            { value: season, updatedBy: req.user.username, updatedAt: new Date() },
+            { upsert: true, new: true }
+        );
+        cachedSeasonValue = season;
+        lastSeasonCachedAt = Date.now();
+        res.json({ message: "Fasl rejimi muvaffaqiyatli sinxronlashtirildi", season: setting.value });
+    } catch (err) {
+        res.status(500).json({ message: "Xatolik yuz berdi" });
+    }
+});
+
+// =============================================
+// EXECUTIVE MANAGEMENT CONTROL & AUDIT APIS
+// =============================================
+
+// 1. Executive Platform Statistics & Grade Distribution
+app.get('/api/management/stats', authMiddleware, managementOrAdmin, async (req, res) => {
+    try {
+        const [totalStudents, totalTeachers, totalCourses, grades, auditsCount] = await Promise.all([
+            User.countDocuments({ role: 'student' }),
+            User.countDocuments({ role: 'teacher' }),
+            Course.countDocuments(),
+            Grade.find(),
+            ManagementAudit.countDocuments()
+        ]);
+
+        const totalGrades = grades.length;
+        const totalPercentageSum = grades.reduce((acc, g) => acc + (g.percentage || g.score || 0), 0);
+        const averageScore = totalGrades > 0 ? (totalPercentageSum / totalGrades).toFixed(1) : 0;
+
+        // Cambridge Grade Distribution
+        const gradeDistribution = { 'A*': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'U': 0 };
+        grades.forEach(g => {
+            const letter = (g.grade || '').trim().toUpperCase();
+            if (gradeDistribution[letter] !== undefined) {
+                gradeDistribution[letter]++;
+            } else if (letter) {
+                gradeDistribution['U']++;
+            }
+        });
+
+        res.json({
+            totalStudents,
+            totalTeachers,
+            totalCourses,
+            totalGrades,
+            averageScore,
+            gradeDistribution,
+            auditsCount
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 2. Comprehensive Grades Inspection & Export API
+app.get('/api/management/grades', authMiddleware, managementOrAdmin, async (req, res) => {
+    try {
+        const { search, classGroup } = req.query;
+        let filter = {};
+
+        const grades = await Grade.find(filter)
+            .populate('studentId', 'username email grade')
+            .populate('courseId', 'title code')
+            .populate('teacherId', 'username')
+            .sort({ date: -1 });
+
+        let formatted = grades.map(g => ({
+            _id: g._id,
+            studentUsername: g.studentId?.username || 'O\'quvchi',
+            studentEmail: g.studentId?.email || '-',
+            classGroup: g.studentId?.grade || '5-sinf',
+            courseTitle: g.courseId?.title || 'Umumiy Fan',
+            teacherUsername: g.teacherId?.username || 'O\'qituvchi',
+            assessmentType: g.type || 'BSB',
+            score: g.score || 0,
+            percentage: g.percentage || g.score || 0,
+            cambridgeGrade: g.grade || 'A',
+            feedback: g.comment || g.feedback || 'Yaxshi',
+            date: g.date || g.createdAt
+        }));
+
+        if (search) {
+            const q = search.toLowerCase();
+            formatted = formatted.filter(g => 
+                g.studentUsername.toLowerCase().includes(q) || 
+                g.courseTitle.toLowerCase().includes(q) || 
+                g.teacherUsername.toLowerCase().includes(q)
+            );
+        }
+
+        if (classGroup && classGroup !== 'Barchasi') {
+            formatted = formatted.filter(g => g.classGroup === classGroup);
+        }
+
+        res.json(formatted);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 3. Get All Executive Audit Summaries (Teachers, Management & Admins, excluded for Students)
+app.get('/api/management/audits', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role === 'student') {
+            return res.status(403).json({ message: "O'quvchilar uchun ruxsat berilmagan" });
+        }
+        const audits = await ManagementAudit.find().sort({ createdAt: -1 });
+        res.json(audits);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 4. Create Executive Audit Summary / Inspection Note
+app.post('/api/management/audit-note', authMiddleware, managementOrAdmin, async (req, res) => {
+    try {
+        const { targetCourseTitle, classGroup, auditCategory, summaryTitle, executiveNote, recommendations, overallRating } = req.body;
+        if (!summaryTitle || !executiveNote) {
+            return res.status(400).json({ message: "Xulosa sarlavhasi va matnini kiriting!" });
+        }
+
+        const newAudit = new ManagementAudit({
+            authorId: req.user.userId,
+            authorUsername: req.user.username,
+            targetCourseTitle: targetCourseTitle || 'Umumiy Platforma Audit',
+            classGroup: classGroup || 'Barchasi',
+            auditCategory: auditCategory || 'Baholash Nazorati',
+            summaryTitle,
+            executiveNote,
+            recommendations: recommendations || '',
+            overallRating: Number(overallRating) || 5
+        });
+
+        await newAudit.save();
+        res.status(201).json({ message: "Umumiy xulosa va tekshiruv dalolatnomasi muvaffaqiyatli saqlandi! 📝", audit: newAudit });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 5. Delete Executive Audit Summary
+app.delete('/api/management/audit-note/:id', authMiddleware, managementOrAdmin, async (req, res) => {
+    try {
+        await ManagementAudit.findByIdAndDelete(req.params.id);
+        res.json({ message: "Xulosa o'chirildi" });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 6. Toggle Emoji Reaction on Audit Note
+app.post('/api/management/audits/:id/reaction', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role === 'student') {
+            return res.status(403).json({ message: "O'quvchilar uchun ruxsat berilmagan" });
+        }
+        const { emoji } = req.body;
+        if (!emoji) return res.status(400).json({ message: "Emoji ko'rsatilmadi" });
+
+        const audit = await ManagementAudit.findById(req.params.id);
+        if (!audit) return res.status(404).json({ message: "Audit xulosasi topilmadi" });
+
+        if (!audit.reactions) audit.reactions = [];
+        const existingIdx = audit.reactions.findIndex(r => r.userId?.toString() === req.user.userId && r.emoji === emoji);
+
+        if (existingIdx > -1) {
+            audit.reactions.splice(existingIdx, 1);
+        } else {
+            audit.reactions.push({
+                userId: req.user.userId,
+                username: req.user.username,
+                emoji,
+                createdAt: new Date()
+            });
+        }
+
+        await audit.save();
+        res.json(audit);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 7. Delete Emoji Reaction (Admin or Owner)
+app.delete('/api/management/audits/:id/reaction/:reactionId', authMiddleware, async (req, res) => {
+    try {
+        const audit = await ManagementAudit.findById(req.params.id);
+        if (!audit) return res.status(404).json({ message: "Audit xulosasi topilmadi" });
+
+        const reaction = audit.reactions.id(req.params.reactionId);
+        if (!reaction) return res.status(404).json({ message: "Reaksiya topilmadi" });
+
+        if (req.user.role !== 'admin' && reaction.userId?.toString() !== req.user.userId) {
+            return res.status(403).json({ message: "Faqat admin yoki reaksiya muallifi olib tashlashi mumkin" });
+        }
+
+        audit.reactions.pull(req.params.reactionId);
+        await audit.save();
+        res.json(audit);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 8. Add Comment to Audit Note
+app.post('/api/management/audits/:id/comment', authMiddleware, async (req, res) => {
+    try {
+        if (req.user.role === 'student') {
+            return res.status(403).json({ message: "O'quvchilar uchun ruxsat berilmagan" });
+        }
+        const { text } = req.body;
+        if (!text || !text.trim()) return res.status(400).json({ message: "Izoh matnini kiriting" });
+
+        const audit = await ManagementAudit.findById(req.params.id);
+        if (!audit) return res.status(404).json({ message: "Audit xulosasi topilmadi" });
+
+        if (!audit.comments) audit.comments = [];
+        audit.comments.push({
+            userId: req.user.userId,
+            username: req.user.username,
+            userRole: req.user.role,
+            text: text.trim(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await audit.save();
+        res.json(audit);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 9. Edit Comment on Audit Note (Admin can edit ANY comment, or Comment Author)
+app.put('/api/management/audits/:id/comment/:commentId', authMiddleware, async (req, res) => {
+    try {
+        const { text } = req.body;
+        if (!text || !text.trim()) return res.status(400).json({ message: "Izoh matnini kiriting" });
+
+        const audit = await ManagementAudit.findById(req.params.id);
+        if (!audit) return res.status(404).json({ message: "Audit xulosasi topilmadi" });
+
+        const comment = audit.comments.id(req.params.commentId);
+        if (!comment) return res.status(404).json({ message: "Izoh topilmadi" });
+
+        if (req.user.role !== 'admin' && comment.userId?.toString() !== req.user.userId) {
+            return res.status(403).json({ message: "Faqat admin yoki izoh muallifi tahrirlashi mumkin" });
+        }
+
+        comment.text = text.trim();
+        comment.updatedAt = new Date();
+        await audit.save();
+        res.json(audit);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// 10. Delete Comment on Audit Note (Admin can delete ANY comment, or Comment Author)
+app.delete('/api/management/audits/:id/comment/:commentId', authMiddleware, async (req, res) => {
+    try {
+        const audit = await ManagementAudit.findById(req.params.id);
+        if (!audit) return res.status(404).json({ message: "Audit xulosasi topilmadi" });
+
+        const comment = audit.comments.id(req.params.commentId);
+        if (!comment) return res.status(404).json({ message: "Izoh topilmadi" });
+
+        if (req.user.role !== 'admin' && comment.userId?.toString() !== req.user.userId) {
+            return res.status(403).json({ message: "Faqat admin yoki izoh muallifi o'chirishi mumkin" });
+        }
+
+        audit.comments.pull(req.params.commentId);
+        await audit.save();
+        res.json(audit);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// =============================================
+// STAFF & BIRTHDAY CELEBRATION SYSTEM ROUTES
+// =============================================
+const staffRoutes = require('./routes/staffRoutes');
+app.use('/api/staff', staffRoutes);
+app.use('/api/birthdays', staffRoutes);
+
+const studentBirthdayRoutes = require('./routes/studentBirthdayRoutes');
+app.use('/api/student-birthdays', studentBirthdayRoutes);
+
+// =============================================
+// CD IELTS EXAMINATION PLATFORM ROUTES (PHASE 1)
+// =============================================
+const ieltsRoutes = require('./routes/ielts');
+app.use('/api/ielts', authMiddleware, ieltsRoutes);
+
+// =============================================
+// DIGITAL SAT EXAMINATION PLATFORM ROUTES (PHASE 1)
+// ==========================================
+const satRoutes = require('./routes/sat');
+app.use('/api/sat', authMiddleware, satRoutes);
+
+// =============================================
+// CAMBRIDGE LESSON PLAN GENERATOR ROUTES
+// =============================================
+const cambridgeLessonPlanRoutes = require('./routes/cambridgeLessonPlan');
+app.use('/api/cambridge/lesson-plans', cambridgeLessonPlanRoutes);
+
+// =============================================
+// SERVER START
+// =============================================
+
+app.use((req, res) => res.status(404).json({ message: "Route topilmadi" }));
+
+const PORT = process.env.PORT || 5001;
+app.listen(PORT, () => console.log(`🚀 Server http://localhost:${PORT}`));

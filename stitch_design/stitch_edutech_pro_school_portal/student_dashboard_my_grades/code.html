@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduTech Pro - Dashboard</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#dfe3e8",
+                        "on-secondary-container": "#00722f",
+                        "on-secondary-fixed-variant": "#005320",
+                        "surface-container-low": "#f1f4fa",
+                        "outline": "#727785",
+                        "surface-container": "#ebeef4",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e5e8ee",
+                        "on-secondary-fixed": "#002108",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#adc6ff",
+                        "tertiary-fixed": "#ffdea0",
+                        "surface-bright": "#f7f9ff",
+                        "surface": "#f7f9ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-on-surface": "#eef1f7",
+                        "primary-container": "#2771df",
+                        "on-surface-variant": "#424753",
+                        "on-primary-container": "#fefcff",
+                        "on-tertiary-fixed": "#261a00",
+                        "error": "#ba1a1a",
+                        "background": "#f7f9ff",
+                        "tertiary-container": "#956e00",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#005ac1",
+                        "outline-variant": "#c2c6d5",
+                        "on-tertiary-container": "#fffbff",
+                        "secondary-fixed-dim": "#6ddd81",
+                        "on-primary-fixed": "#001a41",
+                        "on-primary-fixed-variant": "#004494",
+                        "secondary-container": "#86f898",
+                        "primary": "#0058bd",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-variant": "#dfe3e8",
+                        "tertiary": "#765700",
+                        "secondary": "#006e2c",
+                        "tertiary-fixed-dim": "#fbbc06",
+                        "on-tertiary-fixed-variant": "#5c4300",
+                        "on-background": "#181c20",
+                        "inverse-surface": "#2d3135",
+                        "on-surface": "#181c20",
+                        "on-secondary": "#ffffff",
+                        "surface-dim": "#d7dae0",
+                        "secondary-fixed": "#89fa9b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-sm": "16px",
+                        "gutter": "16px",
+                        "margin-md": "32px",
+                        "unit": "8px",
+                        "margin-lg": "48px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["lexend"],
+                        "label-lg": ["inter"],
+                        "label-sm": ["inter"],
+                        "display": ["lexend"],
+                        "body-lg": ["inter"],
+                        "headline-lg": ["lexend"],
+                        "body-md": ["inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased flex">
+<!-- Navigation Drawer (Desktop) -->
+<nav class="hidden md:flex flex-col h-full w-72 rounded-r-2xl bg-surface-container-low shadow-lg fixed left-0 top-0 py-6 z-40 transition-all duration-200 ease-in-out font-headline-md">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col items-start">
+<div class="text-lg font-black text-primary mb-6">EduTech Pro</div>
+<div class="flex items-center gap-4">
+<img alt="Student Portrait" class="w-12 h-12 rounded-full object-cover shadow-sm" data-alt="Portrait of a young male student smiling slightly, bright natural lighting, soft background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsnSH-m0AY6I0SmLQfoKZipg69RLhcsmfVhlUcjICbHeyh3L3UNSoB10F-1HaJyNaFo_4QYjqj-qDPk7CuWA74GgjcBoLGAe0EUID4qsF8gi7_o3HWY0DYoyHgM457D87f9Aw-9aPRiUs2L4bPkeItksqCOyCD2blINL5yz3HsdAjdfgyob29mxF92R5OGA823Kf7vhe9EN2hG9isx-HakQxt93hQJvFeTHG7rA6uFTPI1RHb0Kh786FVicpj8qiCSLVZWBu_GXfi2"/>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Alex Johnson</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Grade 11 Student</span>
+</div>
+</div>
+</div>
+<!-- Navigation Items -->
+<div class="flex flex-col flex-1 gap-1">
+<!-- Active Item: Dashboard -->
+<a class="flex items-center gap-4 px-6 py-3 bg-primary-container text-on-primary-container font-semibold rounded-r-full mr-4 hover:bg-surface-variant transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+<span class="font-label-lg text-label-lg">Dashboard</span>
+</a>
+<!-- Inactive Items -->
+<a class="flex items-center gap-4 px-6 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-r-full mr-4 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-lg text-label-lg">My Grades</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-r-full mr-4 transition-colors" href="#">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-label-lg text-label-lg">Course Catalog</span>
+</a>
+<a class="flex items-center gap-4 px-6 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-r-full mr-4 transition-colors" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-lg text-label-lg">Assignments</span>
+</a>
+</div>
+<div class="mt-auto">
+<a class="flex items-center gap-4 px-6 py-3 text-on-surface-variant hover:bg-surface-container-highest rounded-r-full mr-4 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-lg text-label-lg">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-h-screen md:ml-72 pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-6 h-16 bg-surface-container-lowest text-primary font-headline-md font-medium docked full-width top-0 sticky z-30 border-b border-surface-variant shadow-sm transition-opacity">
+<div class="text-xl font-bold md:hidden">EduTech Pro</div>
+<div class="hidden md:block font-headline-md text-headline-md text-on-surface">Dashboard</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<img alt="Student Profile Picture" class="w-8 h-8 rounded-full md:hidden object-cover" data-alt="Portrait of a young male student smiling slightly, bright natural lighting, soft background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBH2R12lL1dFPjpc338RYPWYImVNBnbaZGmHz20ky6EV_D_iuNgJFw_j7Za4hD7wNSb1r5tygNV2piEx0SMSoWUNpDjvnKblUe98Vnxf5-fpNZXBPZbMYN3b9LS60FCBnW0vUh8y2-X8qjrPI88Rkl7tGFkthRFpu_EoMpUl_WNsYIimhnhaWUMKIwICQ4Sswbk3fM869vzPniWVcGgq5KX0AKbeGSYHqMRg7FLk01VATPDyn9i8kJ2HBVQm87aIAq8SPevXDQcpvIY"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-container-padding flex flex-col gap-margin-md max-w-6xl mx-auto w-full">
+<!-- Welcome AI Card -->
+<section class="bg-primary-container rounded-xl p-8 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+<!-- Decorative background elements -->
+<div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary/10 blur-3xl pointer-events-none"></div>
+<div class="flex-1 z-10">
+<div class="flex items-center gap-2 mb-2 text-on-primary-container/80">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider">AI Assistant</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-primary-container mb-2">Good morning, Alex!</h1>
+<p class="font-body-lg text-body-lg text-on-primary-container/90">You have a math quiz today. Based on your recent practice, you are well-prepared.</p>
+<button class="mt-6 px-6 py-2 bg-primary text-on-primary font-label-lg text-label-lg rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+                        Review Math Notes
+                    </button>
+</div>
+<div class="w-32 h-32 md:w-48 md:h-48 z-10 hidden sm:block">
+<!-- Placeholder for an illustration, using a gradient circle for now -->
+<div class="w-full h-full rounded-full bg-gradient-to-tr from-primary to-inverse-primary shadow-inner opacity-80 border-4 border-on-primary-container/10"></div>
+</div>
+</section>
+<!-- My Grades Section -->
+<section class="flex flex-col gap-margin-sm">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+<h2 class="font-headline-md text-headline-md text-on-surface">My Grades</h2>
+<!-- Filter Chips -->
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-1.5 rounded-full bg-primary text-on-primary font-label-sm text-label-sm shadow-sm">All</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors">Visual Arts</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors">Math</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm hover:bg-surface-container-highest transition-colors">Physics</button>
+</div>
+</div>
+<!-- Bento Grid for Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Math Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">calculate</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Mathematics</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-[10px] uppercase tracking-wide">Released</span>
+</div>
+<div class="mt-2">
+<div class="flex items-baseline gap-2">
+<span class="font-display text-display text-on-surface">88</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant">%</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Summative Grade • A</p>
+</div>
+<div class="mt-auto pt-4">
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 88%;"></div>
+</div>
+<div class="flex justify-between mt-2 font-label-sm text-[10px] text-on-surface-variant">
+<span>Course Progress</span>
+<span>88%</span>
+</div>
+</div>
+</div>
+<!-- Visual Arts Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined">palette</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Visual Arts</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-[10px] uppercase tracking-wide">Released</span>
+</div>
+<div class="mt-2">
+<div class="flex items-baseline gap-2">
+<span class="font-display text-display text-on-surface">95</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant">%</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Summative Grade • A+</p>
+</div>
+<div class="mt-auto pt-4">
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 95%;"></div>
+</div>
+<div class="flex justify-between mt-2 font-label-sm text-[10px] text-on-surface-variant">
+<span>Course Progress</span>
+<span>95%</span>
+</div>
+</div>
+</div>
+<!-- Physics Card -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined">science</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Physics</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-[10px] uppercase tracking-wide">Released</span>
+</div>
+<div class="mt-2">
+<div class="flex items-baseline gap-2">
+<span class="font-display text-display text-on-surface">82</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant">%</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Summative Grade • B</p>
+</div>
+<div class="mt-auto pt-4">
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 82%;"></div>
+</div>
+<div class="flex justify-between mt-2 font-label-sm text-[10px] text-on-surface-variant">
+<span>Course Progress</span>
+<span>82%</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden flex justify-around items-center w-full h-16 pb-safe bg-surface-container-lowest fixed bottom-0 z-50 font-lexend text-[10px] font-medium shadow-[0_-1px_3px_rgba(0,0,0,0.05)] border-t border-surface-variant">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl px-4 py-1.5 scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span>Home</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">grade</span>
+<span>Grades</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">subject</span>
+<span>Subjects</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Profile</span>
+</a>
+</nav>
+</body></html>

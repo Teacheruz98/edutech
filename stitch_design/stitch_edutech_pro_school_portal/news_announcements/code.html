@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>EduFlow - News Feed</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#86f898",
+                        "primary-fixed": "#d8e2ff",
+                        "primary": "#0058bd",
+                        "surface-tint": "#005ac1",
+                        "surface-container": "#ebeef4",
+                        "primary-container": "#2771df",
+                        "on-background": "#181c20",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#fefcff",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#001a41",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdea0",
+                        "tertiary": "#765700",
+                        "on-tertiary-container": "#fffbff",
+                        "inverse-on-surface": "#eef1f7",
+                        "surface-variant": "#dfe3e8",
+                        "outline": "#727785",
+                        "on-tertiary-fixed-variant": "#5c4300",
+                        "surface": "#f7f9ff",
+                        "on-secondary-fixed": "#002108",
+                        "surface-bright": "#f7f9ff",
+                        "primary-fixed-dim": "#adc6ff",
+                        "inverse-primary": "#adc6ff",
+                        "tertiary-container": "#956e00",
+                        "surface-container-high": "#e5e8ee",
+                        "on-secondary-container": "#00722f",
+                        "on-primary-fixed-variant": "#004494",
+                        "secondary-fixed": "#89fa9b",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f1f4fa",
+                        "on-surface": "#181c20",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#dfe3e8",
+                        "on-tertiary-fixed": "#261a00",
+                        "secondary-fixed-dim": "#6ddd81",
+                        "outline-variant": "#c2c6d5",
+                        "on-secondary-fixed-variant": "#005320",
+                        "tertiary-fixed-dim": "#fbbc06",
+                        "inverse-surface": "#2d3135",
+                        "secondary": "#006e2c",
+                        "on-surface-variant": "#424753",
+                        "background": "#f7f9ff",
+                        "surface-dim": "#d7dae0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "gutter": "16px",
+                        "unit": "8px",
+                        "margin-md": "32px",
+                        "margin-lg": "48px",
+                        "margin-sm": "16px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["inter"],
+                        "body-md": ["inter"],
+                        "display": ["lexend"],
+                        "label-lg": ["inter"],
+                        "headline-md": ["lexend"],
+                        "headline-lg": ["lexend"],
+                        "body-lg": ["inter"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-body-md antialiased pb-24 md:pb-0 lg:pl-64">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-gray-950 font-['Lexend'] font-medium tracking-tight docked full-width top-0 border-b border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-between px-6 py-3 w-full sticky z-50">
+<div class="flex items-center gap-4">
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors active:scale-95 duration-150 p-2 rounded-full lg:hidden">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex items-center gap-2 text-xl font-bold text-blue-600 dark:text-blue-400">
+<span class="material-symbols-outlined">school</span>
+<span>EduFlow</span>
+</div>
+</div>
+<button class="text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors active:scale-95 duration-150 p-2 rounded-full">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- NavigationDrawer (Desktop) -->
+<nav class="bg-gray-50 dark:bg-gray-900 font-['Lexend'] text-sm h-full rounded-r-lg tonal_shift flat no shadows hidden lg:flex flex-col w-64 h-screen fixed left-0 top-0 border-r border-gray-200 dark:border-gray-800 z-40 pt-16">
+<div class="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3">
+<img alt="User Profile" class="w-10 h-10 rounded-full object-cover" data-alt="Close up portrait of a young male student smiling naturally in a bright indoor setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEi3AWwJjwQtZtoBluz1jtfefgheuMVMCeWyLPFkr0hmF_Kip3OaN4DRnKxtYDBjC6hMKkOv5qJOeui7DwQvJ4ZB6txpPX69TYVHh8Ajy9h0XIYaOmcnlb0g9d_vwI4RbZurzZq3ZpE-9rNppBbDizG-WTB7l13Wq0SlO4EfyCv6ES7ykMd6oc6Eq2DNT-Ktz_Gl9M9IGXi5bXBp8zdv5ShqBCmTDed2zmaegpY9lw6KtbX66kHHMGQqBqg6__nwTXtiuJDLjfez6i"/>
+<div>
+<h2 class="font-bold text-blue-600">Academic Portal</h2>
+<p class="text-gray-500 text-xs">Student View</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto py-4 flex flex-col gap-1">
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 px-6 py-3 flex items-center gap-3 transition-colors duration-200 ease-out" href="#">
+<span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+<a class="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border-r-4 border-blue-600 px-6 py-3 flex items-center gap-3 transition-colors duration-200 ease-out" href="#">
+<span class="material-symbols-outlined">newspaper</span> News Feed
+            </a>
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 px-6 py-3 flex items-center gap-3 transition-colors duration-200 ease-out" href="#">
+<span class="material-symbols-outlined">calendar_today</span> Calendar
+            </a>
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 px-6 py-3 flex items-center gap-3 transition-colors duration-200 ease-out" href="#">
+<span class="material-symbols-outlined">folder_shared</span> Resources
+            </a>
+<a class="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 px-6 py-3 flex items-center gap-3 transition-colors duration-200 ease-out mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+            </a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="max-w-7xl mx-auto px-4 md:px-container-padding py-8">
+<!-- Header & Search -->
+<div class="mb-8 space-y-6">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">News &amp; Updates</h1>
+<p class="text-on-surface-variant font-body-md">Stay informed with the latest happenings around campus.</p>
+</div>
+<!-- Search Bar -->
+<div class="relative max-w-2xl">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container rounded-full border-transparent focus:bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-body-md text-on-surface outline-none placeholder:text-outline-variant shadow-sm" placeholder="Search news, events, or announcements..." type="text"/>
+</div>
+<!-- Category Chips -->
+<div class="flex flex-wrap gap-2 pt-2">
+<button class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-sm text-label-sm shadow-sm transition-colors hover:bg-primary-container/90">All Updates</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm shadow-sm transition-colors hover:bg-surface-container-high border border-outline-variant/30">School News</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm shadow-sm transition-colors hover:bg-surface-container-high border border-outline-variant/30">Events</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm shadow-sm transition-colors hover:bg-surface-container-high border border-outline-variant/30">Academic Updates</button>
+</div>
+</div>
+<!-- Bento Grid Feed Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter auto-rows-[minmax(180px,auto)]">
+<!-- Featured Event Card (Large) -->
+<div class="md:col-span-8 md:row-span-2 bg-surface rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] overflow-hidden group hover:shadow-md transition-shadow relative isolate flex flex-col justify-end min-h-[400px]">
+<img alt="Science Fair Event" class="absolute inset-0 w-full h-full object-cover z-0 group-hover:scale-105 transition-transform duration-500" data-alt="Students actively engaging in a modern science laboratory with glowing experiments and professional equipment, bright lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpwgr9H0n1TEsjDVavC7nS1GV1PN6OYYQme276IKi-UWxZrXJIgsMdekoYVuX3QVXWCdSsjNv3bc2x6awSnzI1mC8Apgx68DJcYYVO5RJ_dmo8uapvbgFXAGSnLwgYxldTPrY7MB1kYoJEj27Sji-GhJtknsfmXK8sI5R3UhgJpwT36rDVd7BnYyvtjd-brLBgN8ZaoTuG-6y_KDusia6AOTIRjMZkgz4p_B-zq7JXJ14Bh3R7ViNbj1tBHd7_c56MQIxyRzSsV-o9"/>
+<div class="absolute inset-0 bg-gradient-to-t from-on-surface/90 via-on-surface/40 to-transparent z-10"></div>
+<div class="relative z-20 p-container-padding flex flex-col gap-3 text-white">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 bg-secondary-container/90 text-on-secondary-container rounded-full font-label-sm text-label-sm backdrop-blur-sm">Featured Event</span>
+<span class="font-label-sm text-label-sm text-white/80">Oct 24, 2023</span>
+</div>
+<h2 class="font-headline-md text-headline-md font-bold text-white drop-shadow-md">Annual Science &amp; Innovation Fair 2023</h2>
+<p class="font-body-md text-body-md text-white/90 line-clamp-2 max-w-2xl">Join us this weekend as our senior students showcase their groundbreaking projects in robotics, sustainable energy, and applied physics.</p>
+</div>
+</div>
+<!-- Important Academic Update Card -->
+<div class="md:col-span-4 md:row-span-1 bg-primary-fixed rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] p-container-padding flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center justify-between mb-4">
+<span class="px-2 py-1 bg-primary text-on-primary rounded font-label-sm text-[10px] uppercase tracking-wider">Academic</span>
+<span class="material-symbols-outlined text-primary">campaign</span>
+</div>
+<h3 class="font-headline-md text-xl text-on-primary-fixed font-semibold mb-2">Midterm Examination Schedule Released</h3>
+<p class="font-body-md text-sm text-on-primary-fixed-variant line-clamp-2">The official schedule for the Fall 2023 midterm examinations is now available on the portal.</p>
+</div>
+<div class="mt-4 pt-4 border-t border-primary/20 flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-primary-fixed-variant">Today, 09:00 AM</span>
+<a class="font-label-sm text-label-sm text-primary font-semibold hover:underline" href="#">View Schedule</a>
+</div>
+</div>
+<!-- Standard News Card -->
+<div class="md:col-span-4 md:row-span-1 bg-surface rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] p-container-padding flex flex-col justify-between hover:shadow-md transition-shadow">
+<div>
+<div class="flex items-center gap-3 mb-3">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant rounded-full font-label-sm text-[11px]">School News</span>
+<span class="font-label-sm text-label-sm text-outline">Oct 22</span>
+</div>
+<h3 class="font-headline-md text-lg text-on-surface font-medium mb-2">Campus Library Renovation Complete</h3>
+<p class="font-body-md text-sm text-on-surface-variant line-clamp-3">The main library has reopened with expanded study pods, updated digital catalogs, and a new coffee bar for late-night studying.</p>
+</div>
+</div>
+<!-- Image Card (Medium) -->
+<div class="md:col-span-4 md:row-span-1 bg-surface rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+<div class="h-32 relative">
+<img alt="Sports Day" class="w-full h-full object-cover" data-alt="Athletes running on an outdoor track field under bright sunny sky with clear lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBn4ZBJ_P-l829AJtWcEvGuKD0dPayZ9ey21th5svWORqtJGF4s5n0CnU5HiZJipPhWslA9GyD_dukwInbpRGkKTycwnSsq-J1yyonkcqft29_kh52wfW5iueRMcDpIgKLUe97pvbwo5Ud8ok4Uu7A8vWKq_PLV_NXBJJkZ4LsADdGuNeOJ094j5cSPX2x5C29crzkbdMUwRDpbBEm5-pZozx3WxGzsvii19M0dnwmTdv2XLtReti95e1fvxNHoDRkpO2K3xb8ZIV1"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-white/90 text-on-surface rounded font-label-sm text-[10px] uppercase tracking-wider backdrop-blur-sm shadow-sm">Sports</span>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<h3 class="font-headline-md text-lg text-on-surface font-medium mb-1 line-clamp-1">Varsity Track Team Wins Regional</h3>
+<p class="font-body-md text-sm text-on-surface-variant mb-3 line-clamp-2">Our athletes secured the top spot at the state qualifiers this weekend.</p>
+<span class="font-label-sm text-xs text-outline mt-auto">Oct 20, 2023</span>
+</div>
+</div>
+<!-- Small Notice Card -->
+<div class="md:col-span-4 md:row-span-1 bg-surface-container-low rounded-xl p-6 flex flex-col justify-center border border-outline-variant/30 hover:border-primary/50 transition-colors">
+<div class="flex items-start gap-4">
+<div class="p-3 bg-tertiary-container/10 text-tertiary rounded-lg">
+<span class="material-symbols-outlined">construction</span>
+</div>
+<div>
+<h4 class="font-headline-md text-base text-on-surface font-medium mb-1">South Wing Maintenance</h4>
+<p class="font-body-md text-sm text-on-surface-variant">Elevator access in the South Wing will be restricted this Thursday for scheduled safety inspections.</p>
+</div>
+</div>
+</div>
+<!-- Another Image Card -->
+<div class="md:col-span-4 md:row-span-1 bg-surface rounded-xl shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+<div class="h-32 relative">
+<img alt="Guest Lecture" class="w-full h-full object-cover" data-alt="Large university lecture hall filled with students listening attentively to a speaker at the podium" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDp-pf_IoHtDwkfF-ot1Rqu3Fr0ml2vo_m9W-jDCkDnkoP_AKWPWy7m1kVWTvMZ7bd7-deJVzfTutHoEebn5_Fhf4bXfxAiQcYdRbYTtrQGKPqlwOAR2BwijYSPCmQsom56SJGoiX7BBVeZeMnJejWsWlWKL0xi662YtnrVal0CuwwRDrDRsU8iDGydlps1lsM3ZYLO32OMZDfYWvVr_Ru2_wxHyz7DnxS-hU_w2iNzPyCZ6c_OQOWSD9Im5912n4w1l6SY3BLBYpZf"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-white/90 text-on-surface rounded font-label-sm text-[10px] uppercase tracking-wider backdrop-blur-sm shadow-sm">Events</span>
+</div>
+<div class="p-4 flex-1 flex flex-col">
+<h3 class="font-headline-md text-lg text-on-surface font-medium mb-1 line-clamp-1">Guest Lecture: Future of AI</h3>
+<p class="font-body-md text-sm text-on-surface-variant mb-3 line-clamp-2">Dr. Emily Chen discusses the implications of generative AI in higher education.</p>
+<span class="font-label-sm text-xs text-outline mt-auto">Oct 18, 2023</span>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md font-['Lexend'] text-[11px] font-medium border-t border-gray-100 dark:border-gray-800 shadow-[0_-2px_10px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe md:hidden">
+<a class="flex flex-col items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20 rounded-xl px-3 py-1 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">rss_feed</span>
+<span>Feed</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-300 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">event_note</span>
+<span>Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-300 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span>Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-300 transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">person</span>
+<span>Profile</span>
+</a>
+</nav>
+</body></html>

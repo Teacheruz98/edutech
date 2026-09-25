@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teacher Dashboard - EduFlow</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Lexend:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config from Design System -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f7f9ff",
+                        "secondary-container": "#86f898",
+                        "on-secondary-fixed": "#002108",
+                        "outline": "#727785",
+                        "background": "#f7f9ff",
+                        "tertiary": "#765700",
+                        "surface-container-high": "#e5e8ee",
+                        "on-secondary-container": "#00722f",
+                        "inverse-primary": "#adc6ff",
+                        "on-secondary-fixed-variant": "#005320",
+                        "primary-container": "#2771df",
+                        "secondary-fixed": "#89fa9b",
+                        "primary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#261a00",
+                        "secondary": "#006e2c",
+                        "on-primary-container": "#fefcff",
+                        "on-background": "#181c20",
+                        "surface-container": "#ebeef4",
+                        "surface-container-highest": "#dfe3e8",
+                        "primary-fixed": "#d8e2ff",
+                        "on-surface": "#181c20",
+                        "tertiary-fixed": "#ffdea0",
+                        "surface-container-low": "#f1f4fa",
+                        "tertiary-container": "#956e00",
+                        "surface-dim": "#d7dae0",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#424753",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#fbbc06",
+                        "secondary-fixed-dim": "#6ddd81",
+                        "surface-variant": "#dfe3e8",
+                        "surface-tint": "#005ac1",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#5c4300",
+                        "on-tertiary-container": "#fffbff",
+                        "surface": "#f7f9ff",
+                        "inverse-surface": "#2d3135",
+                        "inverse-on-surface": "#eef1f7",
+                        "on-primary-fixed": "#001a41",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "primary": "#0058bd",
+                        "outline-variant": "#c2c6d5",
+                        "on-primary-fixed-variant": "#004494"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-sm": "16px",
+                        "margin-lg": "48px",
+                        "container-padding": "24px",
+                        "margin-md": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["lexend"],
+                        "label-lg": ["inter"],
+                        "body-lg": ["inter"],
+                        "display": ["lexend"],
+                        "label-sm": ["inter"],
+                        "headline-lg": ["lexend"],
+                        "body-md": ["inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md h-screen flex overflow-hidden">
+<!-- Navigation Drawer (Shared Component) -->
+<nav class="fixed left-0 top-0 flex flex-col h-full py-4 h-screen w-64 rounded-r-none border-r bg-gray-50 bg-gray-50 z-50">
+<!-- Header -->
+<div class="px-6 mb-8 flex items-center gap-4">
+<img alt="Alex Rivers" class="w-10 h-10 rounded-full object-cover" data-alt="Professional headshot of a teacher with glasses smiling warmly against a clean white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEDdq9l0LfetoK5FrmeDphhSZyXne2aSRHorEPaHRFCs5iu9xWEBL-VuB7WxAc-qJGadBXdF-zKE6DQoh2tziasjUmaIBxwlmyWSKuUgjFKDxfmz0oGcmXf3D5l1YVEhpsk6fobydrmw-fAr64D4kyq2kFtV3kNxx9K_ooKiBhnHbGtYGqD2y9U0EgQSuaqhGBOdtd348Z8Szwdd58waz1ZHGVBlfw518Y67p3MUTE0cH2rjZ7qQJciKildDi1EesHq3EHjbiu_rWt"/>
+<div>
+<h2 class="text-lg font-black text-blue-600 font-lexend text-sm tracking-tight">EduFlow</h2>
+<div class="font-lexend text-sm tracking-tight text-blue-600">Alex Rivers</div>
+<div class="text-xs text-gray-500">Lead Educator</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<ul class="flex flex-col gap-1 w-full mt-4">
+<!-- Active: Dashboard -->
+<li>
+<a class="flex items-center gap-3 px-6 py-3 bg-blue-50 text-blue-700 font-bold border-r-4 border-blue-600 font-lexend text-sm tracking-tight transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<!-- Inactive -->
+<li>
+<a class="flex items-center gap-3 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-lexend text-sm tracking-tight transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">grading</span>
+                    Assignments
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-lexend text-sm tracking-tight transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">group</span>
+                    Students
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 font-lexend text-sm tracking-tight transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-64 flex flex-col h-full bg-background relative overflow-hidden">
+<!-- Top App Bar (Shared Component) -->
+<header class="docked full-width top-0 z-40 flex justify-between items-center h-16 px-6 w-full bg-white text-blue-600 font-lexend text-sm font-medium border-b border-gray-100 shadow-sm shrink-0">
+<div class="flex items-center gap-4 w-full max-w-2xl">
+<!-- Search Bar inside App Bar for Workspace feel -->
+<div class="relative w-full ml-4">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-DEFAULT py-2 pl-10 pr-4 text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" placeholder="Search students, assignments, or files..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-gray-50 transition-colors scale-95 duration-150 relative text-gray-600">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+</button>
+<img alt="Teacher Profile" class="w-8 h-8 rounded-full border border-surface-variant" data-alt="Professional headshot of a teacher with glasses smiling warmly against a clean white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDReHU3XKF-cXRLpgUESmmsTtdDR_Y9Thr84mnie1GgykYr7z_cohuHkWv33QDCyvvLful9yOdNODQLIU-X6JMKP-DxlUJz7YKcZUMInh5fYDbhAosTo8faAKXJZSMoovcsKJh2n4Yj6Gc9rZkZ6eubG7O2vFqFqsGv5PWxsap_0iAIQYkJ4LVq1653v49HG5ImjtAz5DJWEAkJEPZ7AeqQ8Kmp_Fm7L2Qxq0ek36ZT0ReKbSyW5RVsEx576w10kcuhL2r_yjJxoQ7y"/>
+</div>
+</header>
+<!-- Scrollable Workspace -->
+<div class="flex-1 overflow-y-auto p-container-padding">
+<div class="mb-margin-sm">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Good Morning, Alex.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Here is the latest overview of your AP Calculus class.</p>
+</div>
+<!-- 12-Column Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Main Column: Data Table (Span 8) -->
+<div class="col-span-12 lg:col-span-8 flex flex-col gap-margin-sm">
+<!-- Table Card -->
+<div class="bg-surface-container-lowest rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] overflow-hidden">
+<div class="px-6 py-4 border-b border-surface-variant flex justify-between items-center bg-surface-bright">
+<h3 class="font-headline-md text-headline-md text-on-surface">Student Progress</h3>
+<button class="font-label-lg text-label-lg text-primary hover:bg-primary-fixed rounded-DEFAULT px-3 py-1.5 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                                Filter
+                            </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-bright border-b border-surface-variant">
+<th class="px-6 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Student</th>
+<th class="px-6 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Midterm</th>
+<th class="px-6 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Latest Quiz</th>
+<th class="px-6 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Final Input</th>
+<th class="px-6 py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-variant">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-lg text-label-lg">EJ</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Emma Johnson</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">ID: 88291</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">92%</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">88%</td>
+<td class="px-6 py-4">
+<input class="w-16 px-2 py-1 border border-outline rounded-DEFAULT text-center font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none" type="text" value="90"/>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-label-sm">
+                                                On Track
+                                            </span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center font-label-lg text-label-lg">MS</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Michael Smith</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">ID: 88292</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">74%</td>
+<td class="px-6 py-4 font-body-md text-body-md text-error">65%</td>
+<td class="px-6 py-4">
+<input class="w-16 px-2 py-1 border border-outline rounded-DEFAULT text-center font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="--" type="text" value=""/>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
+                                                At Risk
+                                            </span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4 flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-lg text-label-lg">OD</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Olivia Davis</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">ID: 88293</div>
+</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">88%</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface">91%</td>
+<td class="px-6 py-4">
+<input class="w-16 px-2 py-1 border border-outline rounded-DEFAULT text-center font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none" type="text" value="90"/>
+</td>
+<td class="px-6 py-4 text-right">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-label-sm">
+                                                On Track
+                                            </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 border-t border-surface-variant bg-surface-bright flex justify-end">
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-4 py-2 rounded-lg hover:bg-surface-tint transition-colors shadow-sm">
+                                Submit Grades
+                            </button>
+</div>
+</div>
+</div>
+<!-- Right Sidebar: AI & News (Span 4) -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-margin-sm">
+<!-- AI Announcements (Bento/Glassmorphism hint) -->
+<div class="bg-gradient-to-br from-primary-fixed to-surface-bright rounded-lg p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] border border-white/50 relative overflow-hidden">
+<!-- Decorative blob -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+<div class="flex items-center gap-2 mb-4 relative z-10">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-label-lg text-label-lg text-on-surface uppercase tracking-wider text-primary">AI Insights</h3>
+</div>
+<div class="space-y-4 relative z-10">
+<div class="bg-white/60 backdrop-blur-sm rounded-DEFAULT p-3 border border-white/40">
+<p class="font-body-md text-body-md text-on-surface"><strong>Michael Smith</strong> scored 15% lower on the latest quiz compared to his average. Recommend scheduling a review session.</p>
+<button class="mt-2 text-primary font-label-sm text-label-sm hover:underline">Draft Email</button>
+</div>
+<div class="bg-white/60 backdrop-blur-sm rounded-DEFAULT p-3 border border-white/40">
+<p class="font-body-md text-body-md text-on-surface">3 students have not submitted the "Derivatives Practice" assignment due tonight.</p>
+<button class="mt-2 text-primary font-label-sm text-label-sm hover:underline">Send Reminder</button>
+</div>
+</div>
+</div>
+<!-- School News / Quick Links -->
+<div class="bg-surface-container-lowest rounded-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_4px_6px_rgba(0,0,0,0.02)] p-6 border border-surface-variant/50">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant">campaign</span>
+<h3 class="font-headline-md text-headline-md text-on-surface text-lg">Staff Noticeboard</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex items-start gap-3 border-b border-surface-variant pb-3 last:border-0 last:pb-0">
+<div class="w-2 h-2 rounded-full bg-error mt-2 shrink-0"></div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Grades Due by Friday</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm mt-0.5">Please ensure all summative assessments are entered into the portal by 5:00 PM.</div>
+</div>
+</li>
+<li class="flex items-start gap-3 border-b border-surface-variant pb-3 last:border-0 last:pb-0">
+<div class="w-2 h-2 rounded-full bg-secondary mt-2 shrink-0"></div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">Faculty Meeting Room Change</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm mt-0.5">Tomorrow's department meeting is moved to Room 402.</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

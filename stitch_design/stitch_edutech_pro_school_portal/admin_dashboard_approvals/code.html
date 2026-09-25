@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pending Approvals - Admin Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#dfe3e8",
+                        "secondary-fixed": "#89fa9b",
+                        "surface-bright": "#f7f9ff",
+                        "tertiary-container": "#956e00",
+                        "inverse-surface": "#2d3135",
+                        "tertiary-fixed": "#ffdea0",
+                        "on-surface-variant": "#424753",
+                        "on-secondary-fixed-variant": "#005320",
+                        "inverse-primary": "#adc6ff",
+                        "surface-container-low": "#f1f4fa",
+                        "outline": "#727785",
+                        "secondary": "#006e2c",
+                        "primary-fixed-dim": "#adc6ff",
+                        "on-secondary-container": "#00722f",
+                        "on-primary-fixed": "#001a41",
+                        "on-secondary-fixed": "#002108",
+                        "surface-container": "#ebeef4",
+                        "primary": "#0058bd",
+                        "outline-variant": "#c2c6d5",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#fffbff",
+                        "tertiary": "#765700",
+                        "primary-fixed": "#d8e2ff",
+                        "on-tertiary-fixed-variant": "#5c4300",
+                        "secondary-container": "#86f898",
+                        "primary-container": "#2771df",
+                        "on-primary-container": "#fefcff",
+                        "on-surface": "#181c20",
+                        "background": "#f7f9ff",
+                        "on-primary-fixed-variant": "#004494",
+                        "inverse-on-surface": "#eef1f7",
+                        "secondary-fixed-dim": "#6ddd81",
+                        "on-tertiary-fixed": "#261a00",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d7dae0",
+                        "tertiary-fixed-dim": "#fbbc06",
+                        "on-tertiary": "#ffffff",
+                        "surface-tint": "#005ac1",
+                        "on-primary": "#ffffff",
+                        "on-background": "#181c20",
+                        "error-container": "#ffdad6",
+                        "surface": "#f7f9ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-variant": "#dfe3e8",
+                        "surface-container-high": "#e5e8ee"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-md": "32px",
+                        "gutter": "16px",
+                        "margin-lg": "48px",
+                        "margin-sm": "16px",
+                        "container-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["inter"],
+                        "display": ["lexend"],
+                        "label-sm": ["inter"],
+                        "headline-md": ["lexend"],
+                        "body-md": ["inter"],
+                        "headline-lg": ["lexend"],
+                        "body-lg": ["inter"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.1px", "fontWeight": "500" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        [data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-lexend text-base font-medium docked full-width top-0 border-b border-gray-100 dark:border-gray-800 shadow-sm dark:shadow-none flex justify-between items-center w-full px-6 h-16 sticky z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-2xl" data-icon="dashboard">dashboard</span>
+<span class="text-lg font-bold text-blue-600 dark:text-blue-400">Admin Console</span>
+</div>
+<!-- Desktop Navigation -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-blue-600 dark:text-blue-400 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors active:opacity-80 transition-opacity px-4 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="how_to_reg" data-weight="fill">how_to_reg</span>
+<span>Approvals</span>
+</a>
+<a class="text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors active:opacity-80 transition-opacity px-4 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span>Users</span>
+</a>
+<a class="text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors active:opacity-80 transition-opacity px-4 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">
+                A
+            </div>
+<span class="hidden md:block font-medium text-sm text-on-surface">Admin User</span>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 max-w-[1200px] w-full mx-auto px-gutter md:px-margin-md py-margin-sm md:py-margin-md">
+<div class="mb-margin-md flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-2">Pending Approvals</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Review and manage recent student registrations.</p>
+</div>
+<div class="relative w-full md:w-80">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-3 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow font-body-md text-body-md text-on-surface" placeholder="Search applicants..." type="text"/>
+</div>
+</div>
+<!-- Approvals Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<img alt="Avatar" class="w-12 h-12 rounded-full object-cover border border-surface-variant" data-alt="close up portrait of a young professional male student smiling outdoors with natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCF9eHaU4Cnp2G9RWvBmF9ThWdZ-xKHy4OqWrkOXu6ptat-tl6fqHECFd0j_tyzaCB9nR9slCmS7Lkwqk0OYZxAj6Ztn4pWiSf6bY4z65VlLY2w7KOmjg8gcDDHAL40OYx-vIc8UDGC4Kuiz6MtG6RhCXztC5KgOlG1WSqp-1lh9RcW6b_tuMDDQX7UpQGwfVKcyntYSAvXb27DXkhQKCj5TndR8qjGPvbMTzApW9wcs4T7lgjK_S5pLR5ZzP-DeDCJEIvHPdMho2gM"/>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Jasur Alimov</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">jasur.alimov@example.com</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+                        Student
+                    </span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-body-md text-sm">Applied: Oct 25, 2023</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span class="font-body-md text-sm">Computer Science B.Sc.</span>
+</div>
+</div>
+<div class="flex gap-3 mt-auto pt-4 border-t border-surface-variant">
+<button class="flex-1 bg-primary text-on-primary font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+                        Approve
+                    </button>
+<button class="flex-1 bg-transparent border border-outline text-on-surface-variant font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-surface-container-low transition-colors">
+                        Reject
+                    </button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-headline-md text-headline-md font-bold">
+                            EK
+                        </div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Elena Kova</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">e.kova@student.edu</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+                        Student
+                    </span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-body-md text-sm">Applied: Oct 26, 2023</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span class="font-body-md text-sm">Data Analytics M.Sc.</span>
+</div>
+</div>
+<div class="flex gap-3 mt-auto pt-4 border-t border-surface-variant">
+<button class="flex-1 bg-primary text-on-primary font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+                        Approve
+                    </button>
+<button class="flex-1 bg-transparent border border-outline text-on-surface-variant font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-surface-container-low transition-colors">
+                        Reject
+                    </button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<img alt="Avatar" class="w-12 h-12 rounded-full object-cover border border-surface-variant" data-alt="portrait of a young man with glasses in a library setting softly blurred in background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyRsMwiaDxEACJJdnUlaInixHpP_VRUQJGJB-TLppWllVe-XgtkSW0K15tTbQPfikKYd9ozFzfmlZOs_YrQVwUriWeVZKRzeYhR0o7JElPuip7CHjeVTluleSRRGDAH_x8iFq0I7d3yevrflZpZ-RqX_4l49aUQdWuuYud2M9j1pBwsIdkd8w0wILq0GZmjAaRh0zn3WgB6LXYiY_-psAugSfpJktVXxYgvNgzS8RrEXNlZn5bk4wrtNWcqfK9UoJaIkMTpxEF08_t"/>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">David Chen</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">d.chen@example.com</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+                        Student
+                    </span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-body-md text-sm">Applied: Oct 26, 2023</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span class="font-body-md text-sm">Business Admin B.A.</span>
+</div>
+</div>
+<div class="flex gap-3 mt-auto pt-4 border-t border-surface-variant">
+<button class="flex-1 bg-primary text-on-primary font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+                        Approve
+                    </button>
+<button class="flex-1 bg-transparent border border-outline text-on-surface-variant font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-surface-container-low transition-colors">
+                        Reject
+                    </button>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-container-padding shadow-[0px_1px_3px_rgba(0,0,0,0.05),0px_4px_6px_rgba(0,0,0,0.02)] flex flex-col gap-6 relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-1 bg-primary"></div>
+<div class="flex justify-between items-start">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline-md text-headline-md font-bold">
+                            SJ
+                        </div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface font-semibold">Sarah Jenkins</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">s.jenkins@student.edu</p>
+</div>
+</div>
+<span class="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant">
+                        Student
+                    </span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+<span class="font-body-md text-sm">Applied: Oct 27, 2023</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">school</span>
+<span class="font-body-md text-sm">Information Systems</span>
+</div>
+</div>
+<div class="flex gap-3 mt-auto pt-4 border-t border-surface-variant">
+<button class="flex-1 bg-primary text-on-primary font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-primary/90 transition-colors">
+                        Approve
+                    </button>
+<button class="flex-1 bg-transparent border border-outline text-on-surface-variant font-label-lg text-label-lg py-2.5 rounded-lg hover:bg-surface-container-low transition-colors">
+                        Reject
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-safe h-20 bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-gray-800 shadow-[0_-1px_3px_rgba(0,0,0,0.05)] z-50 tonal-shift bg-gray-50 dark:bg-slate-800/50">
+<a class="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-2xl px-5 py-1.5 font-lexend text-[10px] font-medium scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-xl" data-icon="how_to_reg" data-weight="fill">how_to_reg</span>
+<span>Approvals</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-5 py-1.5 hover:text-blue-500 dark:hover:text-blue-300 font-lexend text-[10px] font-medium scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-xl" data-icon="group">group</span>
+<span>Users</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-5 py-1.5 hover:text-blue-500 dark:hover:text-blue-300 font-lexend text-[10px] font-medium scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1 text-xl" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+</body></html>

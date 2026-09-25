@@ -1,0 +1,51 @@
+◇ injected env (6) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+🚀 STARTING SERVER VERSION 3.0 - CLEAN MODULAR ARCHITECTURE
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+🚀 Server http://localhost:5001
+✅ MongoDB muvaffaqiyatli ulandi
+OPTIONS /api/me
+GET /api/me
+OPTIONS /api/student-birthdays/today
+OPTIONS /api/grades
+OPTIONS /api/birthdays/today
+OPTIONS /api/birthdays/upcoming
+OPTIONS /api/student-birthdays/upcoming
+OPTIONS /api/users
+OPTIONS /api/courses
+GET /api/student-birthdays/today
+GET /api/student-birthdays/upcoming
+GET /api/users
+GET /api/grades
+GET /api/birthdays/today
+GET /api/birthdays/upcoming
+GET /api/courses
+OPTIONS /api/me
+GET /api/me
+OPTIONS /api/student-birthdays/today
+OPTIONS /api/birthdays/today
+OPTIONS /api/birthdays/upcoming
+OPTIONS /api/student-birthdays/upcoming
+OPTIONS /api/teacher/courses
+OPTIONS /api/schedules/my-schedule
+OPTIONS /api/deadlines/my-deadlines
+OPTIONS /api/grades
+GET /api/student-birthdays/today
+GET /api/birthdays/today
+GET /api/birthdays/upcoming
+GET /api/student-birthdays/upcoming
+GET /api/teacher/courses
+GET /api/schedules/my-schedule
+GET /api/grades
+GET /api/deadlines/my-deadlines
+OPTIONS /api/courses/6ab4bb094775a1f89b96c4a6/students
+GET /api/courses/6ab4bb094775a1f89b96c4a6/students
+OPTIONS /api/courses/6aaa7ddc5bf105227a297131/students
+GET /api/courses/6aaa7ddc5bf105227a297131/students
+OPTIONS /api/courses/6aa3cb0e6908a41b37d789ad/students
+GET /api/courses/6aa3cb0e6908a41b37d789ad/students
+OPTIONS /api/courses/6a9db63d47e16cad678f195c/students
+GET /api/courses/6a9db63d47e16cad678f195c/students
+OPTIONS /api/me
+OPTIONS /api/settings/season
+GET /api/me
+GET /api/settings/season
